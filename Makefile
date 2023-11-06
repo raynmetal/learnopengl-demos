@@ -6,7 +6,7 @@ INCLUDE_PATHS := -ID:\MyDev\MinGW64\Include
 
 LIBRARY_PATHS := -LD:\MyDev\MinGW64\Lib
 
-LINKER_FLAGS := -lmingw32 -lSDL2main -lSDL2
+LINKER_FLAGS := -lmingw32 -lSDL2main -lSDL2 -lOpenGL32 -lglew32
 
 COMPILER_FLAGS_DBG := -Wall
 

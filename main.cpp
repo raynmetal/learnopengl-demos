@@ -1,4 +1,7 @@
+#include <iostream>
+
 #include <SDL2/SDL.h>
+#include <GL/glew.h>
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 
@@ -9,6 +12,11 @@ int main(int argc, char* argv[]) {
     SDL_GLContext context {};
 
     init(window, context);
+
+    GLuint vertexBuffer {};
+    glGenBuffers(1, &vertexBuffer);
+
+    std::cout << vertexBuffer << '\n';
 
     //Main event loop
     SDL_Event windowEvent;
@@ -42,6 +50,9 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL);
     // Create an openGL context
     context = SDL_GL_CreateContext(window);
+
+    glewExperimental = GL_TRUE;
+    glewInit();
 
     return true;
 }
