@@ -1,0 +1,8 @@
+# IDE Configs
+/.vscode
+
+#Build files
+/**/*.o
+/**/*.a
+/**/*.dll
+/**/*.exe
