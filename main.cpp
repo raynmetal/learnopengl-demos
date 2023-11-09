@@ -10,7 +10,7 @@
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib);
+bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib);
 
 int main(int argc, char* argv[]) {
     SDL_Window* window {};
@@ -26,7 +26,8 @@ int main(int argc, char* argv[]) {
     //Load shader program
     GLuint shaderProgram {};
     GLint vertexAttrib {};
-    if(!loadShaderProgram(shaderProgram, vertexAttrib)) {
+    GLint colorAttrib {};
+    if(!loadShaderProgram(shaderProgram, vertexAttrib, colorAttrib)) {
         close(context);
         return 2;
     }
@@ -38,9 +39,13 @@ int main(int argc, char* argv[]) {
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         0.0f, 0.5f, // top
+            1.f, 0.f, 0.f, //(red)
         0.5f, -0.5f, // bottom right
-        -0.5f, -0.5f // bottom left
+            0.f, 1.f, 0.f, //(green)
+        -0.5f, -0.5f, // bottom left
+            0.f, 0.f, 1.f //(blue)
     };
+
     // Setting up our vertex buffer
     GLuint vbo {};
     glGenBuffers(1, &vbo);
@@ -58,9 +63,10 @@ int main(int argc, char* argv[]) {
     glBindVertexArray(vao);
         //Enable vertex pointer
         glEnableVertexAttribArray(vertexAttrib);
+        glEnableVertexAttribArray(colorAttrib);
         //Specify which buffer to use for vertices
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        //Define the format of each vertex in above buffer
+        //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
             vertexAttrib, // attrib pointer
             2, // Number of values for a "single" input element
@@ -72,12 +78,17 @@ int main(int argc, char* argv[]) {
             // |-----| --> Offset
             //                |--------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            0, // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            5*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
             0 // Offset: offset of the first element relative to the start of the array
         );
+        //Define the format of each vertex color in above buffer
+        glVertexAttribPointer(
+            colorAttrib, 
+            3, GL_FLOAT, GL_FALSE,
+            5*sizeof(float), // Stride
+            reinterpret_cast<void*>(2*sizeof(float)) //Offset
+        );
     glBindVertexArray(0);
-
-    auto t_start { std::chrono::high_resolution_clock::now() };
 
     //Main event loop
     SDL_Event windowEvent;
@@ -89,12 +100,6 @@ int main(int argc, char* argv[]) {
                 windowEvent.key.keysym.sym == SDLK_ESCAPE
             ) break;
         }
-
-        auto t_now { std::chrono::high_resolution_clock::now() };
-        float time { std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count()};
-
-        glUniform3f(uniColor, (sin(time * 4.f) + 1.f)/2.f, 0.f, 0.f);
-
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -133,7 +138,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     return true;
 }
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib) {
+bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib) {
     //Load vertex shader source from file
     std::ifstream vShaderFile{"shaders/vertex.glvs"};
     if(!vShaderFile) {
@@ -216,6 +221,7 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib) {
     glUseProgram(shaderProgram);
 
     vertexAttrib = glGetAttribLocation(shaderProgram, "position");
+    colorAttrib = glGetAttribLocation(shaderProgram, "color");
 
     return true;
 }
