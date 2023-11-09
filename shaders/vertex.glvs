@@ -1,0 +1,12 @@
+#version 150 core
+
+// The vertex shader's duty is to take as input a vertex position,
+// and place it as output the final vertex position in 
+// normalized device coordinates
+
+in vec2 position;
+
+void main() {
+    gl_Position = vec4(position, 0.0, 1.0);
+    //Can also be: vec4(position.x, position.y, 0.0, 1.0);
+}
