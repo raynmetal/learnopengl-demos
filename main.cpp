@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <cmath>
 
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
@@ -76,6 +77,8 @@ int main(int argc, char* argv[]) {
         );
     glBindVertexArray(0);
 
+    auto t_start { std::chrono::high_resolution_clock::now() };
+
     //Main event loop
     SDL_Event windowEvent;
     while(true) {
@@ -86,6 +89,11 @@ int main(int argc, char* argv[]) {
                 windowEvent.key.keysym.sym == SDLK_ESCAPE
             ) break;
         }
+
+        auto t_now { std::chrono::high_resolution_clock::now() };
+        float time { std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count()};
+
+        glUniform3f(uniColor, (sin(time * 4.f) + 1.f)/2.f, 0.f, 0.f);
 
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
