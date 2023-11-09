@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <chrono>
 
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
@@ -28,6 +29,10 @@ int main(int argc, char* argv[]) {
         close(context);
         return 2;
     }
+
+    //Retrieve reference to fragment shader uniform attr
+    GLint uniColor {glGetUniformLocation(shaderProgram, "triangleColor")};
+    glUniform3f(uniColor, 1.f, 0.f, 0.f); // turn our triangle red
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
