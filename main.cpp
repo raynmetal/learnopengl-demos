@@ -46,33 +46,50 @@ int main(int argc, char* argv[]) {
             0.f, 0.f, 1.f //(blue)
     };
 
-    // Setting up our vertex buffer
+    // Set up our vertex buffer
     GLuint vbo {};
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER,  // the type of data we're sending
-        sizeof(vertices), // length of data being sent, in bytes
-        vertices, // the (CPU) memory being copied from (to the GPU memory)
-        GL_STATIC_DRAW // A hint as to how often this data will be overwritten
-    );
+        glBufferData(
+            GL_ARRAY_BUFFER,  // the type of data we're sending
+            sizeof(vertices), // length of data being sent, in bytes
+            vertices, // the (CPU) memory being copied from (to the GPU memory)
+            GL_STATIC_DRAW // A hint as to how often this data will be overwritten
+        );
+        GLuint elements[] {
+            0, 1, 2
+        };
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    // Set up our element buffer
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER, // type of data we're sending
+            sizeof(elements),  // length of data being sent, in bytes
+            elements, // the (CPU) memory being copied from
+            GL_STATIC_DRAW // A hint as to how often this data will be overwritten
+        );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // Set up our vertex array object. A set of buffer and pointer
+    // bindings used for a particular set of draw calls
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-        //Enable vertex pointer
+        //Enable vertex pointer (one for position, another for colour)
         glEnableVertexAttribArray(vertexAttrib);
         glEnableVertexAttribArray(colorAttrib);
-        //Specify which buffer to use for vertices
+        //Specify which buffer to use for vertices, elements
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
             vertexAttrib, // attrib pointer
             2, // Number of values for a "single" input element
             GL_FLOAT, //The format of each component
             GL_FALSE, //Normalize? in case not floating point
-
             //Format of the attribute array, in terms of
             // |.....|VERTEX_0|.......||.....|VERTEX_1|.......|
             // |-----| --> Offset
@@ -105,7 +122,7 @@ int main(int argc, char* argv[]) {
 
         //Start drawing
         glBindVertexArray(vao);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         //Stop drawing
         glBindVertexArray(0);
 
