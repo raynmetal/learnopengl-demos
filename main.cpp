@@ -22,7 +22,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-
     //Load shader program
     GLuint shaderProgram {};
     GLint vertexAttrib {};
@@ -31,10 +30,6 @@ int main(int argc, char* argv[]) {
         close(context);
         return 2;
     }
-
-    //Retrieve reference to fragment shader uniform attr
-    GLint uniColor {glGetUniformLocation(shaderProgram, "triangleColor")};
-    glUniform3f(uniColor, 1.f, 0.f, 0.f); // turn our triangle red
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
@@ -108,6 +103,12 @@ int main(int argc, char* argv[]) {
         );
     glBindVertexArray(0);
 
+    //Set clear colour to a dark green-blueish colour
+    glClearColor(.2f, .3f, .3f, 1.f);
+
+    //Use the shader we loaded as our shader program
+    glUseProgram(shaderProgram);
+
     //Main event loop
     SDL_Event windowEvent;
     while(true) {
@@ -139,19 +140,22 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
     SDL_Init(SDL_INIT_VIDEO);
 
-    //Specify that we want a forward compatible OpenGL 3.2 context
+    //Specify that we want a forward compatible OpenGL 3.3 context
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // creating a stencil buffer
 
-    // Create an OpenGL window with SDL
+    // Create an OpenGL window and context with SDL
     window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL);
-    // Create an openGL context
     context = SDL_GL_CreateContext(window);
+    if(!window || !context) return false;
 
+    //Initialize GLEW
     glewExperimental = GL_TRUE;
     glewInit();
+
+    glViewport(0, 0, 800, 600);
 
     return true;
 }
@@ -234,9 +238,6 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorA
         shaderProgram = 0;
         return false;
     }
-
-    //Use this shader as our shader program
-    glUseProgram(shaderProgram);
 
     vertexAttrib = glGetAttribLocation(shaderProgram, "position");
     colorAttrib = glGetAttribLocation(shaderProgram, "color");

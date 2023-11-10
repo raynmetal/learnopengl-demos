@@ -1,10 +1,10 @@
-#version 150 core
+#version 330 core
 
 // The vertex shader's duty is to take as input a vertex position,
 // and place it as output the final vertex position in 
 // normalized device coordinates
 
-in vec2 position;
+layout (location = 0) in vec2 position;
 in float color;
 
 out vec3 Color;
@@ -13,5 +13,5 @@ void main() {
     // Vertex position  is same as input
     gl_Position = vec4(position, 0.0, 1.0);
 
-    Color = vec3(color, color, color);
+    Color = vec3(color, 0.0, 0.0);
 }
