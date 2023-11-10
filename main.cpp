@@ -39,11 +39,11 @@ int main(int argc, char* argv[]) {
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         0.f, .5f, // top
-            1.f, 0.f, 0.f, //(red)
+            1.f, //(white)
         .5f, -.5f, // bottom right
-            0.f, 1.f, 0.f, //(green)
+            0.f, //(black)
         -.5f, -.5f, // bottom  left
-            0.f, 0.f, 1.f, //(blue)
+            0.5f //(medium gray)
     };
     // Set up element buffer
     GLuint elements[] {
@@ -60,7 +60,6 @@ int main(int argc, char* argv[]) {
             vertices, // the (CPU) memory being copied from (to the GPU memory)
             GL_STATIC_DRAW // A hint as to how often this data will be overwritten
         );
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Set up our element buffer
@@ -95,16 +94,16 @@ int main(int argc, char* argv[]) {
             //Format of the attribute array, in terms of
             // |.....|VERTEX_0|.......||.....|VERTEX_1|.......|
             // |-----| --> Offset
-            //                |--------------| --> Stride
+            //       |-----------------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            5*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
-            0 // Offset: offset of the first element relative to the start of the array
+            3*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
         );
         //Define the format of each vertex color in above buffer
         glVertexAttribPointer(
             colorAttrib, 
-            3, GL_FLOAT, GL_FALSE,
-            5*sizeof(float), // Stride
+            1, GL_FLOAT, GL_FALSE,
+            3*sizeof(float), // Stride
             reinterpret_cast<void*>(2*sizeof(float)) //Offset
         );
     glBindVertexArray(0);
