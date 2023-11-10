@@ -36,15 +36,25 @@ int main(int argc, char* argv[]) {
     GLint uniColor {glGetUniformLocation(shaderProgram, "triangleColor")};
     glUniform3f(uniColor, 1.f, 0.f, 0.f); // turn our triangle red
 
-    //Set up a polygon to draw; here, a triangle
+    //Set up a polygon to draw; here, a rectangle
     float vertices[] {
-        0.0f, 0.5f, // top
+        -.5f, .5f, // top left
             1.f, 0.f, 0.f, //(red)
-        0.5f, -0.5f, // bottom right
+        .5f, .5f, // top right
             0.f, 1.f, 0.f, //(green)
-        -0.5f, -0.5f, // bottom left
-            0.f, 0.f, 1.f //(blue)
+        .5f, -.5f, // bottom  right
+            0.f, 0.f, 1.f, //(blue)
+        .5f, -.5f, // bottom right (again)
+            0.f, 0.f, 1.f, //(blue)
+        -.5f, -.5f, // bottom left
+            1.f, 1.f, 1.f, //(white)
+        -.5f, .5f, // top left (again)
+            1.f, 0.f, 0.f //(red)
     };
+    // Set up element buffer
+    // GLuint elements[] {
+    //     0, 1, 2
+    // };
 
     // Set up our vertex buffer
     GLuint vbo {};
@@ -56,22 +66,21 @@ int main(int argc, char* argv[]) {
             vertices, // the (CPU) memory being copied from (to the GPU memory)
             GL_STATIC_DRAW // A hint as to how often this data will be overwritten
         );
-        GLuint elements[] {
-            0, 1, 2
-        };
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Set up our element buffer
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, // type of data we're sending
-            sizeof(elements),  // length of data being sent, in bytes
-            elements, // the (CPU) memory being copied from
-            GL_STATIC_DRAW // A hint as to how often this data will be overwritten
-        );
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // GLuint ebo;
+
+    // glGenBuffers(1, &ebo);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    //     glBufferData(
+    //         GL_ELEMENT_ARRAY_BUFFER, // type of data we're sending
+    //         sizeof(elements),  // length of data being sent, in bytes
+    //         elements, // the (CPU) memory being copied from
+    //         GL_STATIC_DRAW // A hint as to how often this data will be overwritten
+    //     );
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Set up our vertex array object. A set of buffer and pointer
     // bindings used for a particular set of draw calls
@@ -83,7 +92,7 @@ int main(int argc, char* argv[]) {
         glEnableVertexAttribArray(colorAttrib);
         //Specify which buffer to use for vertices, elements
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
             vertexAttrib, // attrib pointer
@@ -122,7 +131,8 @@ int main(int argc, char* argv[]) {
 
         //Start drawing
         glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         //Stop drawing
         glBindVertexArray(0);
 
