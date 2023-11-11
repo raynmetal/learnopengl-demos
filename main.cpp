@@ -11,7 +11,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib);
+bool loadShaderProgram(GLuint& shaderProgram1, GLuint& shaderProgram2, GLint& vertexAttrib, GLint& colorAttrib);
 
 int main(int argc, char* argv[]) {
     SDL_Window* window {};
@@ -24,10 +24,10 @@ int main(int argc, char* argv[]) {
     }
 
     //Load shader program
-    GLuint shaderProgram {};
+    GLuint shaderProgram1{}, shaderProgram2 {};
     GLint vertexAttrib {};
     GLint colorAttrib {};
-    if(!loadShaderProgram(shaderProgram, vertexAttrib, colorAttrib)) {
+    if(!loadShaderProgram(shaderProgram1, shaderProgram2, vertexAttrib, colorAttrib)) {
         close(context);
         return 2;
     }
@@ -146,9 +146,6 @@ int main(int argc, char* argv[]) {
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
 
-    //Use the shader we loaded as our shader program
-    glUseProgram(shaderProgram);
-
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
@@ -194,9 +191,12 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         //Draw
+        glUseProgram(shaderProgram1);
         glBindVertexArray(vao1);
             glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glUseProgram(shaderProgram2);
         glBindVertexArray(vao2);
             glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -211,7 +211,8 @@ int main(int argc, char* argv[]) {
     glDeleteBuffers(1, &vbo1);
     glDeleteBuffers(1, &vbo2);
     glDeleteBuffers(1, &ebo);
-    glDeleteProgram(shaderProgram);
+    glDeleteProgram(shaderProgram1);
+    glDeleteProgram(shaderProgram2);
 
     close(context);
     return 0;
@@ -244,7 +245,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     return true;
 }
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib) {
+bool loadShaderProgram(GLuint& shaderProgram1, GLuint& shaderProgram2, GLint& vertexAttrib, GLint& colorAttrib) {
     //Load vertex shader source from file
     std::ifstream vShaderFile{"shaders/vertex.glvs"};
     if(!vShaderFile) {
@@ -288,49 +289,99 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorA
     const char* fShaderSource {fShaderStr.c_str()};
 
     //Compile fragment shader
-    GLuint fragmentShader{ glCreateShader(GL_FRAGMENT_SHADER) };
-    glShaderSource(fragmentShader, 1, &fShaderSource, NULL);
+    GLuint fragmentShader1{ glCreateShader(GL_FRAGMENT_SHADER) };
+    glShaderSource(fragmentShader1, 1, &fShaderSource, NULL);
     GLint fShaderCompileStatus {};
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompileStatus);
+    glCompileShader(fragmentShader1);
+    glGetShaderiv(fragmentShader1, GL_COMPILE_STATUS, &fShaderCompileStatus);
     if(fShaderCompileStatus != GL_TRUE) {
         char glslCompileError[512];
-        glGetShaderInfoLog(fragmentShader, 512, NULL, glslCompileError);
+        glGetShaderInfoLog(fragmentShader1, 512, NULL, glslCompileError);
         std::cout << glslCompileError << std::endl;
         glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        glDeleteShader(fragmentShader1);
+        return false;
+    }
+
+    //Load and compile second fragment shader
+    fShaderFile.open("shaders/yellow_fragment.glfs");
+    if(!fShaderFile) {
+        std::cerr << "Could not read fragment shader!" << std::endl;
+        return false;
+    }
+    fShaderStr.clear();
+    for(std::string inputStr {}; std::getline(fShaderFile, inputStr);) {
+        fShaderStr += inputStr;
+        fShaderStr.push_back('\n');
+    }
+    fShaderFile.close();
+    const char* fShaderSource2 {fShaderStr.c_str()};
+    GLuint fragmentShader2{ glCreateShader(GL_FRAGMENT_SHADER) };
+    glShaderSource(fragmentShader2, 1, &fShaderSource2, NULL);
+    glCompileShader(fragmentShader2);
+    glGetShaderiv(fragmentShader2, GL_COMPILE_STATUS, &fShaderCompileStatus);
+    if(fShaderCompileStatus != GL_TRUE) {
+        char glslCompileError[512];
+        glGetShaderInfoLog(fragmentShader2, 512, NULL, glslCompileError);
+        std::cout << glslCompileError << std::endl;
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader1);
+        glDeleteShader(fragmentShader2);
         return false;
     }
 
     //Link the shaders together into a single shader program
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
+    shaderProgram1 = glCreateProgram();
+    glAttachShader(shaderProgram1, vertexShader);
+    glAttachShader(shaderProgram1, fragmentShader1);
     // (happens by default anyway, so commented out) specify 
     // that framebuffer 0 is where outColor is written to
     // glBindFragDataLocation (shaderProgram, 0,"outColor");
     GLint programLinkStatus {};
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &programLinkStatus);
+    glLinkProgram(shaderProgram1);
+    glGetProgramiv(shaderProgram1, GL_LINK_STATUS, &programLinkStatus);
     if(programLinkStatus != GL_TRUE) {
         char glslLinkError[512];
-        glGetProgramInfoLog(shaderProgram, 512, NULL, glslLinkError);
+        glGetProgramInfoLog(shaderProgram1, 512, NULL, glslLinkError);
         std::cout << glslLinkError << std::endl;
         glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        glDeleteProgram(shaderProgram);
-        shaderProgram = 0;
+        glDeleteShader(fragmentShader1);
+        glDeleteShader(fragmentShader2);
+        glDeleteProgram(shaderProgram1);
+        shaderProgram1 = 0;
         return false;
     }
 
-    // Delete shader objects; we no longer require
+    //Link the second fragment shader with the vertex shader 
+    // into a second shader program
+    shaderProgram2 = glCreateProgram();
+    glAttachShader(shaderProgram2, vertexShader);
+    glAttachShader(shaderProgram2, fragmentShader2);
+    glLinkProgram(shaderProgram2);
+    glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &programLinkStatus);
+    if(programLinkStatus != GL_TRUE) {
+        char glslLinkError[512];
+        glGetProgramInfoLog(shaderProgram2, 512, NULL, glslLinkError);
+        std::cout << glslLinkError << std::endl;
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader1);
+        glDeleteShader(fragmentShader2);
+        glDeleteProgram(shaderProgram1);
+        glDeleteProgram(shaderProgram2);
+        shaderProgram2 = 0;
+        shaderProgram1 = 0;
+        return false;
+    }
+
+    // Delete unlinked shader objects; we no longer require
     // them
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glDeleteShader(fragmentShader1);
+    glDeleteShader(fragmentShader2);
 
     //Retrieve pointers to shader attributes
-    vertexAttrib = glGetAttribLocation(shaderProgram, "position");
-    colorAttrib = glGetAttribLocation(shaderProgram, "color");
+    vertexAttrib = glGetAttribLocation(shaderProgram1, "position");
+    colorAttrib = glGetAttribLocation(shaderProgram1, "color");
 
     return true;
 }
