@@ -9,6 +9,7 @@
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
+void processInput(SDL_Event* event);
 
 bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib);
 
@@ -112,13 +113,16 @@ int main(int argc, char* argv[]) {
     //Main event loop
     SDL_Event windowEvent;
     while(true) {
+        //Check SDL event queue for any events, process them
         if(SDL_PollEvent(&windowEvent)) {
             if(windowEvent.type == SDL_QUIT) break;
             else if(
                 windowEvent.type == SDL_KEYUP &&
                 windowEvent.key.keysym.sym == SDLK_ESCAPE
             ) break;
+            else processInput(&windowEvent);
         }
+
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -132,8 +136,31 @@ int main(int argc, char* argv[]) {
         SDL_GL_SwapWindow(window);
     }
 
+    // de-allocate resources
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+    glDeleteProgram(shaderProgram);
+
     close(context);
     return 0;
+}
+
+void processInput(SDL_Event* event) {
+    if(!event) return;
+    switch(event->type){
+        case SDL_WINDOWEVENT:
+            switch(event->window.event) {
+                case SDL_WINDOWEVENT_RESIZED:
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    glViewport(
+                        0, 0,
+                        event->window.data1, event->window.data2
+                    );
+                break;
+            }
+        break;
+    }
 }
 
 bool init(SDL_Window*& window, SDL_GLContext& context) {
@@ -147,7 +174,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // creating a stencil buffer
 
     // Create an OpenGL window and context with SDL
-    window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     context = SDL_GL_CreateContext(window);
     if(!window || !context) return false;
 
@@ -155,6 +182,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     glewExperimental = GL_TRUE;
     glewInit();
 
+    //Set up viewport
     glViewport(0, 0, 800, 600);
 
     return true;
@@ -239,6 +267,12 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorA
         return false;
     }
 
+    // Delete shader objects; we no longer require
+    // them
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    //Retrieve pointers to shader attributes
     vertexAttrib = glGetAttribLocation(shaderProgram, "position");
     colorAttrib = glGetAttribLocation(shaderProgram, "color");
 
@@ -246,6 +280,8 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorA
 }
 
 void close(SDL_GLContext& context){
+
+
     //Kill the OpenGL context before quitting
     SDL_GL_DeleteContext(context);
 
