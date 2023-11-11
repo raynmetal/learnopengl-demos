@@ -33,15 +33,17 @@ int main(int argc, char* argv[]) {
     }
 
     //Set up polygon(s) to draw; here, 2 triangles
-    float vertices[] {
+    float vertices1[] {
         //triangle 1
         -.25f, .5f, // top
             1.f, //(white)
         0.f, -.5f, // bottom right
             0.f, //(black)
         -.5f, -.5f, // bottom  left
-            0.5f, //(medium gray)
+            0.5f //(medium gray)
+    };
 
+    float vertices2[] {
         //Triangle 2
         .25f, .5f, // top
             0.f, // (black)
@@ -56,15 +58,25 @@ int main(int argc, char* argv[]) {
         0, 1, 2, //  triangle
     };
 
-    // Set up our vertex buffer
-    GLuint vbo {};
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // Set up our vertex buffers
+    GLuint vbo1 {};
+    glGenBuffers(1, &vbo1);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo1);
         glBufferData(
             GL_ARRAY_BUFFER,  // the type of data we're sending
-            sizeof(vertices), // length of data being sent, in bytes
-            vertices, // the (CPU) memory being copied from (to the GPU memory)
+            sizeof(vertices1), // length of data being sent, in bytes
+            vertices1, // the (CPU) memory being copied from (to the GPU memory)
             GL_STATIC_DRAW // A hint as to how often this data will be overwritten
+        );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    GLuint vbo2 {};
+    glGenBuffers(1, &vbo2);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo2);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof(vertices2),
+            vertices2,
+            GL_STATIC_DRAW
         );
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -82,14 +94,14 @@ int main(int argc, char* argv[]) {
 
     // Set up our vertex array object. A set of buffer and pointer
     // bindings used for a particular set of draw calls
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    GLuint vao1;
+    glGenVertexArrays(1, &vao1);
+    glBindVertexArray(vao1);
         //Enable vertex pointer (one for position, another for colour)
         glEnableVertexAttribArray(vertexAttrib);
         glEnableVertexAttribArray(colorAttrib);
         //Specify which buffer to use for vertices, elements
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo1);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
@@ -111,6 +123,23 @@ int main(int argc, char* argv[]) {
             1, GL_FLOAT, GL_FALSE,
             3*sizeof(float), // Stride
             reinterpret_cast<void*>(2*sizeof(float)) //Offset
+        );
+    glBindVertexArray(0);
+
+    GLuint vao2;
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+        glEnableVertexAttribArray(vertexAttrib);
+        glEnableVertexAttribArray(colorAttrib);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo2);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glVertexAttribPointer(
+            vertexAttrib, 2, GL_FLOAT, GL_FALSE, 
+            3*sizeof(float), reinterpret_cast<void*>(0)
+        );
+        glVertexAttribPointer(
+            colorAttrib, 1, GL_FLOAT, GL_FALSE,
+            3*sizeof(float), reinterpret_cast<void*>(2*sizeof(float))
         );
     glBindVertexArray(0);
 
@@ -165,9 +194,11 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         //Draw
-        glBindVertexArray(vao);
-            // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(vao1);
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            // glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(vao2);
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         //Update screen
@@ -175,8 +206,10 @@ int main(int argc, char* argv[]) {
     }
 
     // de-allocate resources
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao1);
+    glDeleteVertexArrays(1, &vao2);
+    glDeleteBuffers(1, &vbo1);
+    glDeleteBuffers(1, &vbo2);
     glDeleteBuffers(1, &ebo);
     glDeleteProgram(shaderProgram);
 
