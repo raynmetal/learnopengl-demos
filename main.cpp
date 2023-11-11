@@ -32,15 +32,25 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    //Set up a polygon to draw; here, a triangle
+    //Set up polygon(s) to draw; here, 2 triangles
     float vertices[] {
-        0.f, .5f, // top
+        //triangle 1
+        -.25f, .5f, // top
             1.f, //(white)
-        .5f, -.5f, // bottom right
+        0.f, -.5f, // bottom right
             0.f, //(black)
         -.5f, -.5f, // bottom  left
-            0.5f //(medium gray)
+            0.5f, //(medium gray)
+
+        //Triangle 2
+        .25f, .5f, // top
+            0.f, // (black)
+        .5f, -.5f, // bottom right
+            .5f, // (medium gray)
+        0.f, -.5f, //bottom left
+            1.f // (white)
     };
+
     // Set up element buffer
     GLuint elements[] {
         0, 1, 2, //  triangle
@@ -154,10 +164,10 @@ int main(int argc, char* argv[]) {
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
-        //Start drawing
+        //Draw
         glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        //Stop drawing
+            // glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
         //Update screen
