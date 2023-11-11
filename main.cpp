@@ -111,16 +111,44 @@ int main(int argc, char* argv[]) {
     glUseProgram(shaderProgram);
 
     //Main event loop
-    SDL_Event windowEvent;
+    SDL_Event event;
+    bool wireframeMode { false };
+
     while(true) {
         //Check SDL event queue for any events, process them
-        if(SDL_PollEvent(&windowEvent)) {
-            if(windowEvent.type == SDL_QUIT) break;
+        if(SDL_PollEvent(&event)) {
+            //Handle exit events
+            if(event.type == SDL_QUIT) break;
             else if(
-                windowEvent.type == SDL_KEYUP &&
-                windowEvent.key.keysym.sym == SDLK_ESCAPE
+                event.type == SDL_KEYUP &&
+                event.key.keysym.sym == SDLK_ESCAPE
             ) break;
-            else processInput(&windowEvent);
+
+            //Handle window resizing events
+            else if(event.type == SDL_WINDOWEVENT) {
+                switch(event.window.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        glViewport(
+                            0, 0,
+                            event.window.data1, event.window.data2
+                        );
+                    break;
+                }
+            }
+
+            //Enable/disable wireframe mode
+            else if(event.type == SDL_KEYUP) {
+                switch(event.key.keysym.sym) {
+                    case SDLK_9:
+                        wireframeMode = !wireframeMode;
+                        if(wireframeMode)
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        else 
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    break;
+                }
+            }
         }
 
         //Clear colour buffer
@@ -146,22 +174,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void processInput(SDL_Event* event) {
-    if(!event) return;
-    switch(event->type){
-        case SDL_WINDOWEVENT:
-            switch(event->window.event) {
-                case SDL_WINDOWEVENT_RESIZED:
-                case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    glViewport(
-                        0, 0,
-                        event->window.data1, event->window.data2
-                    );
-                break;
-            }
-        break;
-    }
-}
+void processInput(SDL_Event* event) {}
 
 bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
