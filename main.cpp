@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <chrono>
 #include <cmath>
 
 #include <SDL2/SDL.h>
@@ -11,7 +10,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib);
+bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib, GLint& uniColorAttrib);
 
 int main(int argc, char* argv[]) {
     SDL_Window* window {};
@@ -27,7 +26,8 @@ int main(int argc, char* argv[]) {
     GLuint shaderProgram {};
     GLint vertexAttrib {};
     GLint colorAttrib {};
-    if(!loadShaderProgram(shaderProgram, vertexAttrib, colorAttrib)) {
+    GLint uniColorAttrib {};
+    if(!loadShaderProgram(shaderProgram, vertexAttrib, colorAttrib, uniColorAttrib)) {
         close(context);
         return 2;
     }
@@ -150,6 +150,10 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        //Vary color of triangle over time
+        float timeValue { static_cast<float>(SDL_GetTicks())/1000.f };
+        float colorPhase { static_cast<float>(0.5f*sin(timeValue)) + 0.5f };
+        glUniform4f(uniColorAttrib, 0.f, colorPhase, 0.f, 1.f);
 
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
@@ -201,7 +205,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     return true;
 }
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib) {
+bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib, GLint& uniColorAttrib) {
     //Load vertex shader source from file
     std::ifstream vShaderFile{"shaders/vertex.glvs"};
     if(!vShaderFile) {
@@ -288,6 +292,7 @@ bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorA
     //Retrieve pointers to shader attributes
     vertexAttrib = glGetAttribLocation(shaderProgram, "position");
     colorAttrib = glGetAttribLocation(shaderProgram, "color");
+    uniColorAttrib = glGetUniformLocation(shaderProgram, "uniColor");
 
     return true;
 }
