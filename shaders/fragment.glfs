@@ -1,6 +1,6 @@
 #version 330 core
 
-uniform vec4 uniColor;
+uniform float uniColor;
 
 in vec3 Color;
 
@@ -11,5 +11,5 @@ void main() {
     // outColor = vec4(Color, 1.0);
 
     // Color output is determined by uniColor attribute
-    outColor = uniColor;
+    outColor = vec4(0.0, uniColor, 0.0, 1.0);
 }

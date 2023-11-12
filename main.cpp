@@ -6,11 +6,11 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 
+#include "shader.hpp"
+
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
-
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib, GLint& uniColorAttrib);
 
 int main(int argc, char* argv[]) {
     SDL_Window* window {};
@@ -23,14 +23,9 @@ int main(int argc, char* argv[]) {
     }
 
     //Load shader program
-    GLuint shaderProgram {};
-    GLint vertexAttrib {};
-    GLint colorAttrib {};
-    GLint uniColorAttrib {};
-    if(!loadShaderProgram(shaderProgram, vertexAttrib, colorAttrib, uniColorAttrib)) {
-        close(context);
-        return 2;
-    }
+    Shader shader {"shaders/vertex.glvs", "shaders/fragment.glfs"};
+    GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
+    GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
@@ -108,7 +103,7 @@ int main(int argc, char* argv[]) {
     glClearColor(.2f, .3f, .3f, 1.f);
 
     //Use the shader we loaded as our shader program
-    glUseProgram(shaderProgram);
+    shader.use();
 
     //Main event loop
     SDL_Event event;
@@ -153,7 +148,7 @@ int main(int argc, char* argv[]) {
         //Vary color of triangle over time
         float timeValue { static_cast<float>(SDL_GetTicks())/1000.f };
         float colorPhase { static_cast<float>(0.5f*sin(timeValue)) + 0.5f };
-        glUniform4f(uniColorAttrib, 0.f, colorPhase, 0.f, 1.f);
+        shader.setFloat("uniColor", colorPhase);
 
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
@@ -172,7 +167,7 @@ int main(int argc, char* argv[]) {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
-    glDeleteProgram(shaderProgram);
+    glDeleteProgram(shader.getProgramID());
 
     close(context);
     return 0;
@@ -205,101 +200,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     return true;
 }
 
-bool loadShaderProgram(GLuint& shaderProgram, GLint& vertexAttrib, GLint& colorAttrib, GLint& uniColorAttrib) {
-    //Load vertex shader source from file
-    std::ifstream vShaderFile{"shaders/vertex.glvs"};
-    if(!vShaderFile) {
-        std::cerr << "Could not read vertex shader!" << std::endl;
-        return false;
-    }
-    std::string vShaderStr {};
-    for(std::string inputStr {}; std::getline(vShaderFile, inputStr);) {
-        vShaderStr += inputStr;
-        vShaderStr.push_back('\n');
-    }
-    vShaderFile.close();
-    const char* vShaderSource {vShaderStr.c_str()};
-
-    // Compile vertex shader
-    GLuint vertexShader {glCreateShader(GL_VERTEX_SHADER)};
-    GLint vShaderCompileStatus {};
-    glShaderSource(vertexShader, 1, &vShaderSource, NULL);
-    glCompileShader(vertexShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vShaderCompileStatus);
-    if(vShaderCompileStatus != GL_TRUE) {
-        char glslCompileError[512];
-        glGetShaderInfoLog(vertexShader, 512, NULL, glslCompileError);
-        std::cout << glslCompileError << std::endl;
-        glDeleteShader(vertexShader);
-        return false;
-    }
-
-    //Load fragment shader source
-    std::ifstream fShaderFile{"shaders/fragment.glfs"};
-    if(!fShaderFile) {
-        std::cerr << "Could not read fragment shader!" << std::endl;
-        return false;
-    }
-    std::string fShaderStr {};
-    for(std::string inputStr {}; std::getline(fShaderFile, inputStr);) {
-        fShaderStr += inputStr;
-        fShaderStr.push_back('\n');
-    }
-    fShaderFile.close();
-    const char* fShaderSource {fShaderStr.c_str()};
-
-    //Compile fragment shader
-    GLuint fragmentShader{ glCreateShader(GL_FRAGMENT_SHADER) };
-    glShaderSource(fragmentShader, 1, &fShaderSource, NULL);
-    GLint fShaderCompileStatus {};
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompileStatus);
-    if(fShaderCompileStatus != GL_TRUE) {
-        char glslCompileError[512];
-        glGetShaderInfoLog(fragmentShader, 512, NULL, glslCompileError);
-        std::cout << glslCompileError << std::endl;
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        return false;
-    }
-
-    //Link the shaders together into a single shader program
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    // (happens by default anyway, so commented out) specify 
-    // that framebuffer 0 is where outColor is written to
-    // glBindFragDataLocation (shaderProgram, 0,"outColor");
-    GLint programLinkStatus {};
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &programLinkStatus);
-    if(programLinkStatus != GL_TRUE) {
-        char glslLinkError[512];
-        glGetProgramInfoLog(shaderProgram, 512, NULL, glslLinkError);
-        std::cout << glslLinkError << std::endl;
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        glDeleteProgram(shaderProgram);
-        shaderProgram = 0;
-        return false;
-    }
-
-    // Delete shader objects; we no longer require
-    // them
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    //Retrieve pointers to shader attributes
-    vertexAttrib = glGetAttribLocation(shaderProgram, "position");
-    colorAttrib = glGetAttribLocation(shaderProgram, "color");
-    uniColorAttrib = glGetUniformLocation(shaderProgram, "uniColor");
-
-    return true;
-}
-
 void close(SDL_GLContext& context){
-
-
     //Kill the OpenGL context before quitting
     SDL_GL_DeleteContext(context);
 
