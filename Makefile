@@ -1,4 +1,4 @@
-SRCS := main.cpp shader.cpp
+SRCS := main.cpp shader.cpp texture.cpp utility.cpp
 
 CC := g++
 

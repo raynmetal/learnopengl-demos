@@ -8,6 +8,7 @@
 #include <GL/glew.h>
 
 #include "shader.hpp"
+#include "texture.hpp"
 #include "utility.hpp"
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
@@ -30,6 +31,13 @@ int main(int argc, char* argv[]) {
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
     GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
 
+    Texture texture { "media/wall.jpg"  };
+    if(!texture.getTextureID()) {
+        std::cout << "Oops, our texture failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
+
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         0.f, .5f, // top
@@ -42,63 +50,6 @@ int main(int argc, char* argv[]) {
             0.f, 0.f, 1.f, //(blue)
             0.f, 0.f // texture bottom left
     };
-
-    //Load texture
-    SDL_Surface* texture_image { IMG_Load("media/wall.jpg") };
-    if(!texture_image) {
-        std::cout << "Could not load texture!\n";
-        close(context);
-        return 1;
-    }
-    int width {nearestPowerOfTwo_32bit(texture_image->w)};
-    int height {nearestPowerOfTwo_32bit(texture_image->h)};
-    std::cout << width << ", " << height << '\n';
-    SDL_Surface* pretexture {
-        SDL_CreateRGBSurface(
-        0,
-        nearestPowerOfTwo_32bit(texture_image->w),
-        nearestPowerOfTwo_32bit(texture_image->h),
-        24,
-        0xff0000,
-        0x00ff00,
-        0x0000ff,
-        0
-    )};
-    if(!pretexture) {
-        std::cout << "Something went wrong: " << SDL_GetError() << std::endl;
-        SDL_FreeSurface(texture_image);
-        close(context);
-        return 1;
-    }
-    SDL_SetSurfaceBlendMode(texture_image, SDL_BLENDMODE_NONE);
-    SDL_SetSurfaceBlendMode(pretexture, SDL_BLENDMODE_NONE);
-    SDL_BlitSurface(texture_image, nullptr, pretexture, nullptr);
-    SDL_FreeSurface(texture_image);
-    texture_image = nullptr;
-    GLuint texture;
-    glGenTextures(1, &texture);
-    if(!texture) {
-        SDL_FreeSurface(pretexture);
-        close(context);
-        return 1;
-    }
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-        pretexture->w, pretexture->h,
-        0, GL_RGB, GL_UNSIGNED_BYTE, 
-        reinterpret_cast<void*>(pretexture->pixels)
-    );
-    SDL_FreeSurface(pretexture);
-    pretexture = nullptr;
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-        // Interpolate between close mipmaps, interpolating linearly
-        // between nearby pixels within each texture
-        GL_LINEAR_MIPMAP_LINEAR 
-    );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Set up element buffer
     GLuint elements[] {
@@ -180,7 +131,7 @@ int main(int argc, char* argv[]) {
     SDL_Event event;
     bool wireframeMode { false };
 
-    glBindTexture(GL_TEXTURE_2D, texture);
+    texture.bindTexture();
 
     while(true) {
         //Check SDL event queue for any events, process them
