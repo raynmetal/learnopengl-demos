@@ -145,6 +145,10 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        float elapsed_time {static_cast<float>(SDL_GetTicks())/1000.f};
+        float phase { .5f * static_cast<float>(sin(elapsed_time)) + .5f };
+        shader.setFloat("offset", phase);
+
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -156,7 +160,6 @@ int main(int argc, char* argv[]) {
         //Update screen
         SDL_GL_SwapWindow(window);
     }
-
     // de-allocate resources
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
