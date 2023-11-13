@@ -6,15 +6,16 @@
 
 layout (location = 0) in vec2 position;
 
-uniform float offset;
-
 in vec3 color;
 
 out vec3 Color;
 
+out vec2 outPosition;
+
 void main() {
     // Vertex position  is same as input
-    gl_Position = vec4(offset + position.x, position.y, 0.0, 1.0);
+    gl_Position = vec4(position.x, position.y, 0.0, 1.0);
 
     Color = color;
+    outPosition = position;
 }
