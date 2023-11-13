@@ -30,11 +30,11 @@ int main(int argc, char* argv[]) {
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         0.f, .5f, // top
-            1.f, //(white)
+            1.f, 0.f, 0.f, //(red)
         .5f, -.5f, // bottom right
-            0.f, //(black)
+            0.f, 1.f, 0.f, //(green)
         -.5f, -.5f, // bottom  left
-            0.5f //(medium gray)
+            0.f, 0.f, 1.f //(blue)
     };
     // Set up element buffer
     GLuint elements[] {
@@ -87,14 +87,14 @@ int main(int argc, char* argv[]) {
             // |-----| --> Offset
             //       |-----------------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            3*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            5*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
             reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
         );
         //Define the format of each vertex color in above buffer
         glVertexAttribPointer(
             colorAttrib, 
-            1, GL_FLOAT, GL_FALSE,
-            3*sizeof(float), // Stride
+            3, GL_FLOAT, GL_FALSE,
+            5*sizeof(float), // Stride
             reinterpret_cast<void*>(2*sizeof(float)) //Offset
         );
     glBindVertexArray(0);
@@ -145,18 +145,12 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        //Vary color of triangle over time
-        float timeValue { static_cast<float>(SDL_GetTicks())/1000.f };
-        float colorPhase { static_cast<float>(0.5f*sin(timeValue)) + 0.5f };
-        shader.setFloat("uniColor", colorPhase);
-
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
         //Start drawing
         glBindVertexArray(vao);
             glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-        //Stop drawing
         glBindVertexArray(0);
 
         //Update screen
