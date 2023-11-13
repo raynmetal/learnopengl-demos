@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
     }
     SDL_SetSurfaceBlendMode(texture_image, SDL_BLENDMODE_NONE);
     SDL_SetSurfaceBlendMode(pretexture, SDL_BLENDMODE_NONE);
-    int blit_result { SDL_BlitSurface(texture_image, nullptr, pretexture, nullptr) };
+    SDL_BlitSurface(texture_image, nullptr, pretexture, nullptr);
     SDL_FreeSurface(texture_image);
     texture_image = nullptr;
     GLuint texture;
