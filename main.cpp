@@ -4,9 +4,11 @@
 #include <cmath>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <GL/glew.h>
 
 #include "shader.hpp"
+#include "utility.hpp"
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
@@ -26,16 +28,78 @@ int main(int argc, char* argv[]) {
     Shader shader {"shaders/vertex.glvs", "shaders/fragment.glfs"};
     GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
+    GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         0.f, .5f, // top
             1.f, 0.f, 0.f, //(red)
+            0.5f, 1.f, // [sample] texture top center
         .5f, -.5f, // bottom right
             0.f, 1.f, 0.f, //(green)
+            1.f, 0.f, // texture bottom right
         -.5f, -.5f, // bottom  left
-            0.f, 0.f, 1.f //(blue)
+            0.f, 0.f, 1.f, //(blue)
+            0.f, 0.f // texture bottom left
     };
+
+    //Load texture
+    SDL_Surface* texture_image { IMG_Load("media/wall.jpg") };
+    if(!texture_image) {
+        std::cout << "Could not load texture!\n";
+        close(context);
+        return 1;
+    }
+    int width {nearestPowerOfTwo_32bit(texture_image->w)};
+    int height {nearestPowerOfTwo_32bit(texture_image->h)};
+    std::cout << width << ", " << height << '\n';
+    SDL_Surface* pretexture {
+        SDL_CreateRGBSurface(
+        0,
+        nearestPowerOfTwo_32bit(texture_image->w),
+        nearestPowerOfTwo_32bit(texture_image->h),
+        24,
+        0xff0000,
+        0x00ff00,
+        0x0000ff,
+        0
+    )};
+    if(!pretexture) {
+        std::cout << "Something went wrong: " << SDL_GetError() << std::endl;
+        SDL_FreeSurface(texture_image);
+        close(context);
+        return 1;
+    }
+    SDL_SetSurfaceBlendMode(texture_image, SDL_BLENDMODE_NONE);
+    SDL_SetSurfaceBlendMode(pretexture, SDL_BLENDMODE_NONE);
+    int blit_result { SDL_BlitSurface(texture_image, nullptr, pretexture, nullptr) };
+    SDL_FreeSurface(texture_image);
+    texture_image = nullptr;
+    GLuint texture;
+    glGenTextures(1, &texture);
+    if(!texture) {
+        SDL_FreeSurface(pretexture);
+        close(context);
+        return 1;
+    }
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+        pretexture->w, pretexture->h,
+        0, GL_RGB, GL_UNSIGNED_BYTE, 
+        reinterpret_cast<void*>(pretexture->pixels)
+    );
+    SDL_FreeSurface(pretexture);
+    pretexture = nullptr;
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+        // Interpolate between close mipmaps, interpolating linearly
+        // between nearby pixels within each texture
+        GL_LINEAR_MIPMAP_LINEAR 
+    );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
     // Set up element buffer
     GLuint elements[] {
         0, 1, 2, //  triangle
@@ -73,6 +137,7 @@ int main(int argc, char* argv[]) {
         //Enable vertex pointer (one for position, another for colour)
         glEnableVertexAttribArray(vertexAttrib);
         glEnableVertexAttribArray(colorAttrib);
+        glEnableVertexAttribArray(textureCoordAttrib);
         //Specify which buffer to use for vertices, elements
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -87,15 +152,21 @@ int main(int argc, char* argv[]) {
             // |-----| --> Offset
             //       |-----------------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            5*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            7*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
             reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
         );
         //Define the format of each vertex color in above buffer
         glVertexAttribPointer(
             colorAttrib, 
             3, GL_FLOAT, GL_FALSE,
-            5*sizeof(float), // Stride
-            reinterpret_cast<void*>(2*sizeof(float)) //Offset
+            7*sizeof(float), // Stride
+            reinterpret_cast<void*>(2*sizeof(float)) // Offset
+        );
+        glVertexAttribPointer(
+            textureCoordAttrib,
+            2, GL_FLOAT, GL_FALSE,
+            7*sizeof(float), // Stride
+            reinterpret_cast<void*>(5*sizeof(float)) // Offset
         );
     glBindVertexArray(0);
 
@@ -108,6 +179,8 @@ int main(int argc, char* argv[]) {
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
+
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     while(true) {
         //Check SDL event queue for any events, process them
@@ -172,6 +245,7 @@ void processInput(SDL_Event* event) {}
 bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
     SDL_Init(SDL_INIT_VIDEO);
+    IMG_Init(IMG_INIT_JPG);
 
     //Specify that we want a forward compatible OpenGL 3.3 context
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);

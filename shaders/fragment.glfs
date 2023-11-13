@@ -1,15 +1,14 @@
 #version 330 core
 
 uniform float uniColor;
+uniform sampler2D ourTexture;
 
 in vec3 Color;
+in vec2 TextureCoord;
 
 out vec4 outColor;
 
 void main() {
     // Color output is determined by vertex
-    outColor = vec4(Color, 1.0);
-
-    // Color output is determined by uniColor attribute
-    // outColor = vec4(0.0, uniColor, 0.0, 1.0);
+    outColor = texture(ourTexture, TextureCoord);
 }
