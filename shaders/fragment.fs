@@ -1,6 +1,7 @@
 #version 330 core
 
 uniform float uniColor;
+uniform float texture2CoordMultiplier;
 
 //We're sampling from 2 textures now
 uniform sampler2D texture1;
@@ -13,14 +14,10 @@ out vec4 outColor;
 
 void main() {
 
-    vec2 hrzntlFlipTextureCoord = vec2(
-        1.0 - TextureCoord.x,
-        TextureCoord.y
-    );
     // Color output is determined by vertex
     outColor = mix(
         texture(texture1, TextureCoord),
-        texture(texture2, hrzntlFlipTextureCoord),
+        texture(texture2, TextureCoord * texture2CoordMultiplier),
         0.2 // 80% of the first texture, and 20% of the second
     );
 }

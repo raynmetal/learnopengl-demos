@@ -51,22 +51,30 @@ int main(int argc, char* argv[]) {
     }
     txtr2.bindTexture(true);
 
-    //Set up a polygon to draw; here, a triangle
+    // Set up a polygon to draw; here, a rectangle
+    // composed of two adjacent triangles
     float vertices[] {
-        0.f, .5f, // top
+        -.5f, .5f, // top left
             1.f, 0.f, 0.f, //(red)
-            0.5f, 1.f, // [sample] texture top center
-        .5f, -.5f, // bottom right
+            0.f, 1.f, // [sample] texture top left
+
+        .5f, .5f, // top right
             0.f, 1.f, 0.f, //(green)
-            1.f, 0.f, // texture bottom right
-        -.5f, -.5f, // bottom  left
+            1.f, 1.f, // texture top right
+
+        .5f, -.5f, // bottom  right
             0.f, 0.f, 1.f, //(blue)
-            0.f, 0.f // texture bottom left
+            1.f, 0.f, // texture bottom right
+        
+        -.5f, -.5f, // bottom left
+            1.f, 1.f, 1.f, //(white)
+            0.f, 0.f //texture bottom left
     };
 
     // Set up element buffer
     GLuint elements[] {
-        0, 1, 2, //  triangle
+        0, 1, 2, // topright triangle
+        0, 2, 3, // bottomleft triangle
     };
 
     // Set up our vertex buffer
@@ -145,6 +153,10 @@ int main(int argc, char* argv[]) {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
+    //Set texture coordinate multiplier for texture 2 (so that it
+    // is sampled multiple times)
+    shader.setFloat("texture2CoordMultiplier", 2.f);
+
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
@@ -190,7 +202,7 @@ int main(int argc, char* argv[]) {
 
         //Start drawing
         glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         //Update screen
