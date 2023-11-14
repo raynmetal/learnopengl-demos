@@ -10,12 +10,10 @@ in vec2 textureCoord;
 
 out vec3 Color;
 out vec2 TextureCoord;
-out vec2 Position;
 
 void main() {
     // Vertex position  is same as input
     gl_Position = vec4(position, 0.0, 1.0);
-    Position = position;
     Color = color;
     TextureCoord = textureCoord;
 }

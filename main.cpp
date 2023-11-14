@@ -153,18 +153,13 @@ int main(int argc, char* argv[]) {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
-    //Set texture coordinate multiplier for texture 2 (so that it
-    // is sampled multiple times)
-    shader.setFloat("texture2CoordMultiplier", 1.f);
-
-    //Enable OpenGL blending
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //Initialize bias tracking variable
+    float mixBias {0.f};
+    shader.setFloat("mixBias", mixBias);
 
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
-
     while(true) {
         //Check SDL event queue for any events, process them
         if(SDL_PollEvent(&event)) {
@@ -186,6 +181,20 @@ int main(int argc, char* argv[]) {
                         );
                     break;
                 }
+            }
+
+            else if(event.type == SDL_KEYUP) {
+                switch(event.key.keysym.sym) {
+                    case SDLK_UP:
+                        mixBias += .05f;
+                        if(mixBias > 1.f) mixBias = 1.f;
+                    break;
+                    case SDLK_DOWN:
+                        mixBias -= .05f;
+                        if(mixBias < 0.f) mixBias = 0.f;
+                    break;
+                }
+                shader.setFloat("mixBias", mixBias);
             }
 
             //Enable/disable wireframe mode
