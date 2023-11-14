@@ -8,8 +8,6 @@ layout (location = 0) in vec2 position;
 in vec3 color;
 in vec2 textureCoord;
 
-uniform sampler2D myTexture;
-
 out vec3 Color;
 out vec2 TextureCoord;
 

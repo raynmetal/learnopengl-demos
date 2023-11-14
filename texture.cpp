@@ -8,6 +8,8 @@
 #include "texture.hpp"
 #include "utility.hpp"
 
+void flip_surface(SDL_Surface* surface);
+
 Texture::Texture(const char* filename) {
     bool success { loadTextureFromFile(filename) };
     if(!success) {
@@ -37,27 +39,18 @@ bool Texture::loadTextureFromFile(const char* filename) {
     }
 
     //Convert image from RGBA -> RGB
-    SDL_Surface* pretexture {
-        SDL_CreateRGBSurface(
-        0,
-        nearestPowerOfTwo_32bit(texture_image->w),
-        nearestPowerOfTwo_32bit(texture_image->h),
-        24,
-        0xff0000,
-        0x00ff00,
-        0x0000ff,
-        0
-    )};
-    if(!pretexture) {
-        std::cout << "Something went wrong: " << SDL_GetError() << std::endl;
-        SDL_FreeSurface(texture_image);
-        return false;
-    }
-    SDL_SetSurfaceBlendMode(texture_image, SDL_BLENDMODE_NONE);
-    SDL_SetSurfaceBlendMode(pretexture, SDL_BLENDMODE_NONE);
-    SDL_BlitSurface(texture_image, nullptr, pretexture, nullptr);
+    SDL_Surface* pretexture = SDL_ConvertSurfaceFormat(texture_image, SDL_PIXELFORMAT_RGB24, 0 );
     SDL_FreeSurface(texture_image);
     texture_image = nullptr;
+    if(!pretexture) {
+        std::cout << "Something went wrong: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    // Flip texture vertically before loading them into OpenGL
+    // (OpenGL expects 0 as bottom, 1 as top, and SDL expects
+    // the opposite)
+    flip_surface(pretexture);
 
     // Move surface pixels to graphics card
     GLuint texture;
@@ -113,3 +106,29 @@ void Texture::bindTexture(bool bind) {
 }
 
 GLuint Texture::getTextureID() { return mID; }
+
+void flip_surface(SDL_Surface* surface) {
+    if(!surface) return;
+
+    //Lock surface for modification
+    SDL_LockSurface(surface);
+
+    int rowLen {surface->pitch}; //rowlength, in bytes
+    char* temp { new char[rowLen] };
+    char* pixels {reinterpret_cast<char*>(surface->pixels)};
+
+    for(int i{0}; i < surface->h/2; ++i) {
+        // pointers to the rows to be swapped
+        char* row_top { pixels + i*rowLen };
+        char* row_bottom {pixels + (surface->h - 1 - i ) * rowLen};
+
+        //swap rows
+        memcpy(temp, row_top, rowLen);
+        memcpy(row_top, row_bottom, rowLen);
+        memcpy(row_bottom, temp, rowLen);
+    }
+    delete[] temp;
+
+    //Done modifying this surface, so unlock
+    SDL_UnlockSurface(surface);
+}

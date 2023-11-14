@@ -26,17 +26,30 @@ int main(int argc, char* argv[]) {
     }
 
     //Load shader program
-    Shader shader {"shaders/vertex.glvs", "shaders/fragment.glfs"};
+    Shader shader {"shaders/vertex.vs", "shaders/fragment.fs"};
     GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
     GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
 
-    Texture texture { "media/wall.jpg"  };
-    if(!texture.getTextureID()) {
+    //Load first texture into texture unit 0
+    glActiveTexture(GL_TEXTURE0);
+    Texture txtr1 { "media/wall.jpg"  };
+    if(!txtr1.getTextureID()) {
         std::cout << "Oops, our texture failed to load" << std::endl;
         close(context);
         return 1;
     }
+    txtr1.bindTexture(true);
+
+    //Load second texture into texture unit 1
+    glActiveTexture(GL_TEXTURE1);
+    Texture txtr2 { "media/awesomeface.png"  };
+    if(!txtr2.getTextureID()) {
+        std::cout << "Oops, our texture failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
+    txtr2.bindTexture(true);
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
@@ -127,11 +140,14 @@ int main(int argc, char* argv[]) {
     //Use the shader we loaded as our shader program
     shader.use();
 
+    // Set texture unit for each sampler (in the fragment
+    // shader)
+    shader.setInt("texture1", 0);
+    shader.setInt("texture2", 1);
+
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
-
-    texture.bindTexture();
 
     while(true) {
         //Check SDL event queue for any events, process them
@@ -196,7 +212,7 @@ void processInput(SDL_Event* event) {}
 bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
     SDL_Init(SDL_INIT_VIDEO);
-    IMG_Init(IMG_INIT_JPG);
+    IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 
     //Specify that we want a forward compatible OpenGL 3.3 context
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
