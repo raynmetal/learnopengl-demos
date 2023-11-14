@@ -155,7 +155,11 @@ int main(int argc, char* argv[]) {
 
     //Set texture coordinate multiplier for texture 2 (so that it
     // is sampled multiple times)
-    shader.setFloat("texture2CoordMultiplier", 2.f);
+    shader.setFloat("texture2CoordMultiplier", 1.f);
+
+    //Enable OpenGL blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     //Main event loop
     SDL_Event event;
@@ -208,6 +212,8 @@ int main(int argc, char* argv[]) {
         //Update screen
         SDL_GL_SwapWindow(window);
     }
+
+    glDisable(GL_BLEND);
 
     // de-allocate resources
     glDeleteVertexArrays(1, &vao);
