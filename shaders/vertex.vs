@@ -4,7 +4,7 @@
 // and place it as output the final vertex position in 
 // normalized device coordinates
 
-in vec2 position;
+in vec3 position;
 in vec3 color;
 in vec2 textureCoord;
 
@@ -18,7 +18,7 @@ out vec2 TextureCoord;
 
 void main() {
     // Vertex position is transformed by our MVP matrices
-    gl_Position = projection * view * model * vec4(position, 0.0, 1.0);
+    gl_Position = projection * view * model * vec4(position, 1.0);
     Color = color;
     TextureCoord = textureCoord;
 }

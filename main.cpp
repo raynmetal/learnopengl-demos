@@ -61,27 +61,53 @@ int main(int argc, char* argv[]) {
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
-        -.5f, .5f, // topleft
+        -.5f, .5f, .5f, // topleft front
             1.f, 0.f, 0.f, //(red)
             0.f, 1.f, // [sample] texture top left
-
-        .5f, .5f, // topright
+        .5f, .5f, 0.5f, // topright front
             1.f, 1.f, 0.f, // (yellow)
             1.f, 1.f, // texture top right
-
-        .5f, -.5f, // bottom right
+        .5f, -.5f, 0.5f, // bottom right front
             0.f, 1.f, 0.f, //(green)
             1.f, 0.f, // texture bottom right
-
-        -.5f, -.5f, // bottom  left
+        -.5f, -.5f, 0.5f, // bottom  left front
             0.f, 0.f, 1.f, //(blue)
-            0.f, 0.f // texture bottom left
+            0.f, 0.f, // texture bottom left
+        
+        -.5f, -.5f, -.5f, // bottom left back
+            0.f, 0.f, 0.f,
+            0.f, 1.f,
+        .5f, -.5f, -.5f, // bottom right back
+            0.f, 0.f, 0.f,
+            1.f, 1.f,
+        .5f, .5f, -.5f, // top right back
+            0.f, 0.f, 0.f,
+            1.f, 0.f,
+        -.5f, .5f, -.5f, // top left back
+            0.f, 0.f, 0.f,
+            0.f, 0.f
     };
 
     // Set up element buffer
     GLuint elements[] {
-        0, 1, 2, //  top right triangle
-        0, 2, 3
+        // front face
+        0, 1, 2, 
+        0, 2, 3,
+        // bottom face
+        2, 3, 4,
+        2, 4, 5,
+        //back face
+        4, 5, 6,
+        4, 6, 7,
+        //top face
+        6, 7, 0,
+        6, 0, 1,
+        // right face
+        6, 1, 2,
+        6, 2, 5,
+        // left face
+        0, 7, 4,
+        0, 4, 3
     };
 
     // Set up our vertex buffer
@@ -123,7 +149,7 @@ int main(int argc, char* argv[]) {
         //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
             vertexAttrib, // attrib pointer
-            2, // Number of values for a "single" input element
+            3, // Number of values for a "single" input element
             GL_FLOAT, //The format of each component
             GL_FALSE, //Normalize? in case not floating point
             //Format of the attribute array, in terms of
@@ -131,21 +157,21 @@ int main(int argc, char* argv[]) {
             // |-----| --> Offset
             //       |-----------------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            7*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            8*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
             reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
         );
         //Define the format of each vertex color in above buffer
         glVertexAttribPointer(
             colorAttrib, 
             3, GL_FLOAT, GL_FALSE,
-            7*sizeof(float), // Stride
-            reinterpret_cast<void*>(2*sizeof(float)) // Offset
+            8*sizeof(float), // Stride
+            reinterpret_cast<void*>(3*sizeof(float)) // Offset
         );
         glVertexAttribPointer(
             textureCoordAttrib,
             2, GL_FLOAT, GL_FALSE,
-            7*sizeof(float), // Stride
-            reinterpret_cast<void*>(5*sizeof(float)) // Offset
+            8*sizeof(float), // Stride
+            reinterpret_cast<void*>(6*sizeof(float)) // Offset
         );
     glBindVertexArray(0);
 
@@ -204,7 +230,10 @@ int main(int argc, char* argv[]) {
         // to its location, orientation, shear, and size, in the 
         // world space
         glm::mat4 model {glm::mat4(1.f)}; 
-        model = glm::rotate(model, glm::radians(-55.f), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::rotate(model, 
+            glm::radians(static_cast<float>(SDL_GetTicks())/10.f), 
+            glm::vec3(0.f, 1.f, 0.f)
+        );
 
         // The View matrix, the inverse of the position of the camera,
         // transforms vertices such that they are located relative 
@@ -229,7 +258,7 @@ int main(int argc, char* argv[]) {
 
         //Start drawing
         glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         //Update screen
