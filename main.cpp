@@ -33,8 +33,11 @@ int main(int argc, char* argv[]) {
     Shader shader {"shaders/vertex.vs", "shaders/fragment.fs"};
     GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
-    GLint transformUniform { glGetUniformLocation(shader.getProgramID(), "transform")};
     GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
+    //Model, view, projection matrices
+    GLint modelUniform { glGetUniformLocation(shader.getProgramID(), "model")};
+    GLint viewUniform { glGetUniformLocation(shader.getProgramID(), "view")};
+    GLint projectionUniform { glGetUniformLocation(shader.getProgramID(), "projection")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -69,6 +72,7 @@ int main(int argc, char* argv[]) {
         .5f, -.5f, // bottom right
             0.f, 1.f, 0.f, //(green)
             1.f, 0.f, // texture bottom right
+
         -.5f, -.5f, // bottom  left
             0.f, 0.f, 1.f, //(blue)
             0.f, 0.f // texture bottom left
@@ -196,11 +200,29 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        //Rotate the polygon over time
-        glm::mat4 trans {glm::mat4(1.f)}; //identity matrix
-        trans = glm::rotate(trans, static_cast<float>(SDL_GetTicks())/1000.f, glm::vec3(0.f, 0.f, 1.f));
-        trans = glm::scale(trans, glm::vec3(.5f, .5f, .5f));
-        glUniformMatrix4fv(transformUniform, 1, GL_FALSE, glm::value_ptr(trans));
+        // The Model matrix transforms a single object's vertices
+        // to its location, orientation, shear, and size, in the 
+        // world space
+        glm::mat4 model {glm::mat4(1.f)}; 
+        model = glm::rotate(model, glm::radians(-55.f), glm::vec3(1.f, 0.f, 0.f));
+
+        // The View matrix, the inverse of the position of the camera,
+        // transforms vertices such that they are located relative 
+        // to the camera's position, with the camera at (0,0,0)
+        glm::mat4 view {glm::mat4(1.f)};
+        // what used to be at +3z is now at 0z. Our camera
+        // is at (0,0,3.f)
+        view = glm::translate(view, glm::vec3(0.f, 0.f, -3.f));
+
+        // The projection matrix will transform our vertices from world space to clip 
+        // space, more on that here: https://jsantell.com/3d-projection/
+        glm::mat4 projection{glm::mat4(1.f)};
+        // make this projection matrix out of parametrs FOV and e(aspect ratio, essentially width/height)
+        projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
+
+        glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
