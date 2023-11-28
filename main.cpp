@@ -253,8 +253,8 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        //Clear colour buffer
-        glClear(GL_COLOR_BUFFER_BIT);
+        //Clear colour and depth buffers before each render
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //Start drawing
         glBindVertexArray(vao);
@@ -299,6 +299,9 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
 
     //Set up viewport
     glViewport(0, 0, 800, 600);
+
+    // Enable OpenGL depth testing
+    glEnable(GL_DEPTH_TEST);
 
     return true;
 }
