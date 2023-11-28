@@ -156,13 +156,6 @@ int main(int argc, char* argv[]) {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
-    // Build a transformation that rotates and then scales a vertex
-    // by 90 degrees and 1/2, send it to the GPU
-    glm::mat4 trans {glm::mat4(1.f)}; //identity matrix
-    trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
-    trans = glm::scale(trans, glm::vec3(.5f, .5f, .5f));
-    glUniformMatrix4fv(transformUniform, 1, GL_FALSE, glm::value_ptr(trans));
-
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
@@ -203,6 +196,12 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        //Rotate the polygon over time
+        glm::mat4 trans {glm::mat4(1.f)}; //identity matrix
+        trans = glm::rotate(trans, static_cast<float>(SDL_GetTicks())/1000.f, glm::vec3(0.f, 0.f, 1.f));
+        trans = glm::scale(trans, glm::vec3(.5f, .5f, .5f));
+        glUniformMatrix4fv(transformUniform, 1, GL_FALSE, glm::value_ptr(trans));
+
         //Clear colour buffer
         glClear(GL_COLOR_BUFFER_BIT);
 
