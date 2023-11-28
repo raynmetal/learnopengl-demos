@@ -186,9 +186,37 @@ int main(int argc, char* argv[]) {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
+    // Render 5 instances of the cube at the following
+    // positions
+    glm::vec3 cubePositions[] {
+        glm::vec3(0.f, 0.f, -2.f),
+        glm::vec3(2.f, 5.f, -15.f),
+        glm::vec3(-1.5f, -2.2f, -12.3f),
+        glm::vec3(5.f,-0.3f, -28.f),
+        glm::vec3(-3.f, -7.2f, -14.7f)
+    };
+
+    glm::vec3 camVelocity {0.f, 0.f, 0.f};
+
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
+
+    // The View matrix, the inverse of the position of the camera,
+    // transforms vertices such that they are located relative 
+    // to the camera's position, with the camera at (0,0,0)
+    glm::mat4 view {glm::mat4(1.f)};
+    // what used to be at +3z is now at 0z. Our camera
+    // is at (0,0,3.f)
+    view = glm::translate(view, glm::vec3(0.f, 0.f, -3.f));
+
+    // The projection matrix will transform our vertices from world space to clip 
+    // space, more on that here: https://jsantell.com/3d-projection/
+    glm::mat4 projection{glm::mat4(1.f)};
+    // make this projection matrix out of parametrs FOV and e(aspect ratio, essentially width/height)
+    projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
+
+    glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
     while(true) {
         //Check SDL event queue for any events, process them
@@ -213,9 +241,28 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            //Enable/disable wireframe mode
+            //Handle keydown
+            else if(event.type == SDL_KEYDOWN){
+                switch(event.key.keysym.sym) {
+                    case SDLK_w:
+                        camVelocity.z -= 3.f;
+                    break;
+                    case SDLK_a:
+                        camVelocity.x -= 3.f;
+                    break;
+                    case SDLK_s:
+                        camVelocity.z += 3.f;
+                    break;
+                    case SDLK_d:
+                        camVelocity.x += 3.f;
+                    break;
+                }
+            }
+
+            // Handle keyup
             else if(event.type == SDL_KEYUP) {
                 switch(event.key.keysym.sym) {
+                    //enable/disable wireframe mode
                     case SDLK_9:
                         wireframeMode = !wireframeMode;
                         if(wireframeMode)
@@ -223,43 +270,48 @@ int main(int argc, char* argv[]) {
                         else 
                             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                     break;
+
+                    // handle camera movements
+                    case SDLK_w:
+                        camVelocity.z += 3.f;
+                    break;
+                    case SDLK_a:
+                        camVelocity.x += 3.f;
+                    break;
+                    case SDLK_s:
+                        camVelocity.z -= 3.f;
+                    break;
+                    case SDLK_d:
+                        camVelocity.x -= 3.f;
+                    break;
                 }
             }
         }
-        // The Model matrix transforms a single object's vertices
-        // to its location, orientation, shear, and size, in the 
-        // world space
-        glm::mat4 model {glm::mat4(1.f)}; 
-        model = glm::rotate(model, 
-            glm::radians(static_cast<float>(SDL_GetTicks())/10.f), 
-            glm::vec3(0.f, 1.f, 0.f)
-        );
 
-        // The View matrix, the inverse of the position of the camera,
-        // transforms vertices such that they are located relative 
-        // to the camera's position, with the camera at (0,0,0)
-        glm::mat4 view {glm::mat4(1.f)};
-        // what used to be at +3z is now at 0z. Our camera
-        // is at (0,0,3.f)
-        view = glm::translate(view, glm::vec3(0.f, 0.f, -3.f));
+        view = glm::translate(view, camVelocity);
 
-        // The projection matrix will transform our vertices from world space to clip 
-        // space, more on that here: https://jsantell.com/3d-projection/
-        glm::mat4 projection{glm::mat4(1.f)};
-        // make this projection matrix out of parametrs FOV and e(aspect ratio, essentially width/height)
-        projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
-
-        glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //Start drawing
-        glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        for(glm::vec3 position : cubePositions) {
+            // The Model matrix transforms a single object's vertices
+            // to its location, orientation, shear, and size, in the 
+            // world space
+            glm::mat4 model {glm::mat4(1.f)};
+            model = glm::translate(model, position);
+            model = glm::rotate(model, 
+                glm::radians(static_cast<float>(SDL_GetTicks())/10.f),
+                position
+            );
+            glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
+
+            //Start drawing
+            glBindVertexArray(vao);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
 
         //Update screen
         SDL_GL_SwapWindow(window);
