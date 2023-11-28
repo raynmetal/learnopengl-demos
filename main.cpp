@@ -7,6 +7,10 @@
 #include <SDL2/SDL_image.h>
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "shader.hpp"
 #include "texture.hpp"
 #include "utility.hpp"
@@ -29,6 +33,7 @@ int main(int argc, char* argv[]) {
     Shader shader {"shaders/vertex.vs", "shaders/fragment.fs"};
     GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
+    GLint transformUniform { glGetUniformLocation(shader.getProgramID(), "transform")};
     GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
 
     //Load first texture into texture unit 0
@@ -53,9 +58,14 @@ int main(int argc, char* argv[]) {
 
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
-        0.f, .5f, // top
+        -.5f, .5f, // topleft
             1.f, 0.f, 0.f, //(red)
-            0.5f, 1.f, // [sample] texture top center
+            0.f, 1.f, // [sample] texture top left
+
+        .5f, .5f, // topright
+            1.f, 1.f, 0.f, // (yellow)
+            1.f, 1.f, // texture top right
+
         .5f, -.5f, // bottom right
             0.f, 1.f, 0.f, //(green)
             1.f, 0.f, // texture bottom right
@@ -66,7 +76,8 @@ int main(int argc, char* argv[]) {
 
     // Set up element buffer
     GLuint elements[] {
-        0, 1, 2, //  triangle
+        0, 1, 2, //  top right triangle
+        0, 2, 3
     };
 
     // Set up our vertex buffer
@@ -145,6 +156,13 @@ int main(int argc, char* argv[]) {
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1);
 
+    // Build a transformation that rotates and then scales a vertex
+    // by 90 degrees and 1/2, send it to the GPU
+    glm::mat4 trans {glm::mat4(1.f)}; //identity matrix
+    trans = glm::rotate(trans, glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+    trans = glm::scale(trans, glm::vec3(.5f, .5f, .5f));
+    glUniformMatrix4fv(transformUniform, 1, GL_FALSE, glm::value_ptr(trans));
+
     //Main event loop
     SDL_Event event;
     bool wireframeMode { false };
@@ -190,7 +208,7 @@ int main(int argc, char* argv[]) {
 
         //Start drawing
         glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         //Update screen
