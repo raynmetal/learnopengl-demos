@@ -198,18 +198,6 @@ int main(int argc, char* argv[]) {
 
     glm::vec3 camVelocity {0.f, 0.f, 0.f};
 
-    //Main event loop
-    SDL_Event event;
-    bool wireframeMode { false };
-
-    // The View matrix, the inverse of the position of the camera,
-    // transforms vertices such that they are located relative 
-    // to the camera's position, with the camera at (0,0,0)
-    glm::mat4 view {glm::mat4(1.f)};
-    // what used to be at +3z is now at 0z. Our camera
-    // is at (0,0,3.f)
-    view = glm::translate(view, glm::vec3(0.f, 0.f, -3.f));
-
     // The projection matrix will transform our vertices from world space to clip 
     // space, more on that here: https://jsantell.com/3d-projection/
     glm::mat4 projection{glm::mat4(1.f)};
@@ -217,6 +205,26 @@ int main(int argc, char* argv[]) {
     projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
 
     glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
+
+    //Initialize camera variables
+    glm::vec3 cameraPos {glm::vec3(0.f, 0.f, 3.f)};
+    glm::vec3 cameraDirection {glm::normalize(cameraPos - glm::vec3(0.f, 0.f, 0.f))};
+    glm::vec3 cameraRight {glm::normalize(glm::cross(glm::vec3(0.f, 1.f, 0.f), cameraDirection))};
+    glm::vec3 cameraUp {glm::normalize(glm::cross(cameraDirection, cameraRight))};
+
+    // The View matrix, the inverse of the position of the camera,
+    // transforms vertices such that they are located relative 
+    // to the camera's position, with the camera at (0,0,0)
+    glm::mat4 view {glm::mat4(1.f)};
+    view = glm::lookAt(
+        cameraPos, // camera position
+        cameraPos - cameraDirection, // camera target
+        cameraUp // temporary vector, up
+    );
+
+    //Main event loop
+    SDL_Event event;
+    bool wireframeMode { false };
 
     while(true) {
         //Check SDL event queue for any events, process them
@@ -287,8 +295,18 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
-        view = glm::translate(view, camVelocity);
+        const float radius { 10.f };
+        float camX {
+            static_cast<float>(sin(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
+        };
+        float camZ { 
+            static_cast<float>(cos(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
+        };
+        view = glm::lookAt(
+            glm::vec3(camX, 0.f, camZ), // camera position (on the plane z=0)
+            glm::vec3(0.f,0.f, 0.f), // camera target
+            glm::vec3(0.f, 1.f, 0.f) // temporary vec, up
+        );
 
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
 
