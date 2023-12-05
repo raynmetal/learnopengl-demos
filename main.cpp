@@ -15,6 +15,16 @@
 #include "texture.hpp"
 #include "utility.hpp"
 
+//Initialize camera variables
+glm::vec3 gCameraPos { 0.f, 0.f, 3.f };
+glm::vec3 gCameraFront { 0.f, 0.f, -1.f };
+glm::vec3 gCameraUp  { 0.f, 1.f,  0.f };
+
+glm::vec3 gCameraVelocity {0.f, 0.f, 0.f};
+
+bool gWireframeMode { false };
+const float CameraTopSpeed {0.05f};
+
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
@@ -196,8 +206,6 @@ int main(int argc, char* argv[]) {
         glm::vec3(-3.f, -7.2f, -14.7f)
     };
 
-    glm::vec3 camVelocity {0.f, 0.f, 0.f};
-
     // The projection matrix will transform our vertices from world space to clip 
     // space, more on that here: https://jsantell.com/3d-projection/
     glm::mat4 projection{glm::mat4(1.f)};
@@ -206,25 +214,13 @@ int main(int argc, char* argv[]) {
 
     glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-    //Initialize camera variables
-    glm::vec3 cameraPos {glm::vec3(0.f, 0.f, 3.f)};
-    glm::vec3 cameraDirection {glm::normalize(cameraPos - glm::vec3(0.f, 0.f, 0.f))};
-    glm::vec3 cameraRight {glm::normalize(glm::cross(glm::vec3(0.f, 1.f, 0.f), cameraDirection))};
-    glm::vec3 cameraUp {glm::normalize(glm::cross(cameraDirection, cameraRight))};
-
     // The View matrix, the inverse of the position of the camera,
     // transforms vertices such that they are located relative 
     // to the camera's position, with the camera at (0,0,0)
-    glm::mat4 view {glm::mat4(1.f)};
-    view = glm::lookAt(
-        cameraPos, // camera position
-        cameraPos - cameraDirection, // camera target
-        cameraUp // temporary vector, up
-    );
+    glm::mat4 view { glm::mat4(1.f) };
 
     //Main event loop
     SDL_Event event;
-    bool wireframeMode { false };
 
     while(true) {
         //Check SDL event queue for any events, process them
@@ -248,66 +244,22 @@ int main(int argc, char* argv[]) {
                     break;
                 }
             }
+            else processInput(&event);
 
-            //Handle keydown
-            else if(event.type == SDL_KEYDOWN){
-                switch(event.key.keysym.sym) {
-                    case SDLK_w:
-                        camVelocity.z -= 3.f;
-                    break;
-                    case SDLK_a:
-                        camVelocity.x -= 3.f;
-                    break;
-                    case SDLK_s:
-                        camVelocity.z += 3.f;
-                    break;
-                    case SDLK_d:
-                        camVelocity.x += 3.f;
-                    break;
-                }
-            }
-
-            // Handle keyup
-            else if(event.type == SDL_KEYUP) {
-                switch(event.key.keysym.sym) {
-                    //enable/disable wireframe mode
-                    case SDLK_9:
-                        wireframeMode = !wireframeMode;
-                        if(wireframeMode)
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                        else 
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                    break;
-
-                    // handle camera movements
-                    case SDLK_w:
-                        camVelocity.z += 3.f;
-                    break;
-                    case SDLK_a:
-                        camVelocity.x += 3.f;
-                    break;
-                    case SDLK_s:
-                        camVelocity.z -= 3.f;
-                    break;
-                    case SDLK_d:
-                        camVelocity.x -= 3.f;
-                    break;
-                }
-            }
+            if(gWireframeMode)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else 
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
-        const float radius { 10.f };
-        float camX {
-            static_cast<float>(sin(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
-        };
-        float camZ { 
-            static_cast<float>(cos(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
-        };
-        view = glm::lookAt(
-            glm::vec3(camX, 0.f, camZ), // camera position (on the plane z=0)
-            glm::vec3(0.f,0.f, 0.f), // camera target
-            glm::vec3(0.f, 1.f, 0.f) // temporary vec, up
-        );
 
+        gCameraPos += gCameraVelocity.z * gCameraFront;
+        gCameraPos += gCameraVelocity.x * (glm::normalize(glm::cross(gCameraFront, gCameraUp)));
+
+        view = glm::lookAt(
+            gCameraPos, // camera position
+            gCameraPos + gCameraFront, // camera target
+            gCameraUp // arbitrary up vector
+        );
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
 
         //Clear colour and depth buffers before each render
@@ -345,7 +297,49 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void processInput(SDL_Event* event) {}
+void processInput(SDL_Event* event) {
+    //Handle keydown
+    if(event->type == SDL_KEYDOWN){
+        switch(event->key.keysym.sym) {
+            case SDLK_w:
+                gCameraVelocity.z += CameraTopSpeed;
+            break;
+            case SDLK_a:
+                gCameraVelocity.x -= CameraTopSpeed;
+            break;
+            case SDLK_s:
+                gCameraVelocity.z -= CameraTopSpeed;
+            break;
+            case SDLK_d:
+                gCameraVelocity.x += CameraTopSpeed;
+            break;
+        }
+    }
+
+    // Handle keyup
+    else if(event->type == SDL_KEYUP) {
+        switch(event->key.keysym.sym) {
+            //enable/disable wireframe mode
+            case SDLK_9:
+                gWireframeMode = !gWireframeMode;
+            break;
+
+            // handle camera movements
+            case SDLK_w:
+                gCameraVelocity.z = 0.f;
+            break;
+            case SDLK_a:
+                gCameraVelocity.x = 0.f;
+            break;
+            case SDLK_s:
+                gCameraVelocity.z = 0.f;
+            break;
+            case SDLK_d:
+                gCameraVelocity.x = 0.f;
+            break;
+        }
+    }
+}
 
 bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
