@@ -22,8 +22,10 @@ glm::vec3 gCameraUp  { 0.f, 1.f,  0.f };
 
 glm::vec3 gCameraVelocity {0.f, 0.f, 0.f};
 
+
 bool gWireframeMode { false };
-const float CameraTopSpeed {0.05f};
+const float CameraTopSpeed {2.5f}; // in coordinates/second
+float gDeltaTime {0.f};
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
@@ -219,6 +221,8 @@ int main(int argc, char* argv[]) {
     // to the camera's position, with the camera at (0,0,0)
     glm::mat4 view { glm::mat4(1.f) };
 
+    uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
+
     //Main event loop
     SDL_Event event;
 
@@ -251,9 +255,14 @@ int main(int argc, char* argv[]) {
             else 
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
+        //Update time related variables
+        uint64_t currentFrame {SDL_GetTicks64()};
+        gDeltaTime = static_cast<float>(currentFrame - lastFrame)/1000.f;
+        lastFrame = currentFrame;
 
-        gCameraPos += gCameraVelocity.z * gCameraFront;
-        gCameraPos += gCameraVelocity.x * (glm::normalize(glm::cross(gCameraFront, gCameraUp)));
+        //Update camera position
+        gCameraPos += gCameraVelocity.z * gCameraFront * gDeltaTime;
+        gCameraPos += gCameraVelocity.x * (glm::normalize(glm::cross(gCameraFront, gCameraUp))) * gDeltaTime;
 
         view = glm::lookAt(
             gCameraPos, // camera position
@@ -302,16 +311,16 @@ void processInput(SDL_Event* event) {
     if(event->type == SDL_KEYDOWN){
         switch(event->key.keysym.sym) {
             case SDLK_w:
-                gCameraVelocity.z += CameraTopSpeed;
+                gCameraVelocity.z = CameraTopSpeed;
             break;
             case SDLK_a:
-                gCameraVelocity.x -= CameraTopSpeed;
+                gCameraVelocity.x = -CameraTopSpeed;
             break;
             case SDLK_s:
-                gCameraVelocity.z -= CameraTopSpeed;
+                gCameraVelocity.z = -CameraTopSpeed;
             break;
             case SDLK_d:
-                gCameraVelocity.x += CameraTopSpeed;
+                gCameraVelocity.x = CameraTopSpeed;
             break;
         }
     }
