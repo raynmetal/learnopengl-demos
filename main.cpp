@@ -19,24 +19,32 @@
 glm::vec3 gCameraPos { 0.f, 0.f, 3.f };
 glm::vec3 gCameraFront { 0.f, 0.f, -1.f };
 glm::vec3 gCameraUp  { 0.f, 1.f,  0.f };
-
 glm::vec3 gCameraVelocity {0.f, 0.f, 0.f};
+float gCameraYaw {glm::radians(-90.f)}; // make camera point down -Z axis by default
+float gCameraPitch {0.f};
+float gFOV{45.f};
 
+const float CameraTopSpeed {2.5f}; // in coordinates/second
+const float CameraLookSensitivity {0.004f};
 
 bool gWireframeMode { false };
-const float CameraTopSpeed {2.5f}; // in coordinates/second
+
 float gDeltaTime {0.f};
+bool gMouseWarped {true};
+
+SDL_Window* gWindow{nullptr};
+const int WindowHeight {600};
+const int WindowWidth {800};
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
 
 int main(int argc, char* argv[]) {
-    SDL_Window* window {};
     SDL_GLContext context {};
 
     // Initialize SDL context
-    if(!init(window, context)) {
+    if(!init(gWindow, context)) {
         close(context);
         return 1;
     }
@@ -213,7 +221,6 @@ int main(int argc, char* argv[]) {
     glm::mat4 projection{glm::mat4(1.f)};
     // make this projection matrix out of parametrs FOV and e(aspect ratio, essentially width/height)
     projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
-
     glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
     // The View matrix, the inverse of the position of the camera,
@@ -226,6 +233,8 @@ int main(int argc, char* argv[]) {
     //Main event loop
     SDL_Event event;
 
+    SDL_CaptureMouse(SDL_TRUE);
+    SDL_ShowCursor(SDL_FALSE);
     while(true) {
         //Check SDL event queue for any events, process them
         if(SDL_PollEvent(&event)) {
@@ -260,16 +269,25 @@ int main(int argc, char* argv[]) {
         gDeltaTime = static_cast<float>(currentFrame - lastFrame)/1000.f;
         lastFrame = currentFrame;
 
+        //Update camera orientation
+        glm::vec3 direction;
+        direction.x = cos(gCameraPitch)*cos(gCameraYaw);
+        direction.z = cos(gCameraPitch)*sin(gCameraYaw);
+        direction.y = sin(gCameraPitch);
+
         //Update camera position
-        gCameraPos += gCameraVelocity.z * gCameraFront * gDeltaTime;
-        gCameraPos += gCameraVelocity.x * (glm::normalize(glm::cross(gCameraFront, gCameraUp))) * gDeltaTime;
+        gCameraPos += gCameraVelocity.z * direction * gDeltaTime;
+        gCameraPos += gCameraVelocity.x * (glm::normalize(glm::cross(direction, gCameraUp))) * gDeltaTime;
 
         view = glm::lookAt(
             gCameraPos, // camera position
-            gCameraPos + gCameraFront, // camera target
+            gCameraPos + direction, // camera target
             gCameraUp // arbitrary up vector
         );
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
+
+        projection = glm::perspective(glm::radians(gFOV), 800.f/600.f, .1f, 100.f);
+        glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -293,8 +311,10 @@ int main(int argc, char* argv[]) {
         }
 
         //Update screen
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(gWindow);
     }
+    SDL_ShowCursor(SDL_TRUE);
+    SDL_CaptureMouse(SDL_FALSE);
 
     // de-allocate resources
     glDeleteVertexArrays(1, &vao);
@@ -307,8 +327,30 @@ int main(int argc, char* argv[]) {
 }
 
 void processInput(SDL_Event* event) {
+
+    //Handle mouse movement
+    if(event->type == SDL_MOUSEMOTION) {
+        if(gMouseWarped){ 
+            gMouseWarped = false;
+            return;
+        }
+        float dX { static_cast<float>(event->motion.xrel) };
+        float dY { -static_cast<float>(event->motion.yrel) };
+        gCameraYaw += CameraLookSensitivity * dX;
+        gCameraPitch += CameraLookSensitivity * dY;
+        gMouseWarped = true;
+        SDL_WarpMouseInWindow(gWindow, WindowWidth/2, WindowHeight/2);
+    }
+    else if(event->type == SDL_MOUSEWHEEL){
+        std::cout << "mousewheel event occurred\n";
+        gFOV += static_cast<float>(event->wheel.y);
+        if(gFOV > 90.f) gFOV = 90.f;
+        else if(gFOV < 40.f) gFOV = 40.f;
+        std::cout << "FOV: " << gFOV << '\n';
+    }
+
     //Handle keydown
-    if(event->type == SDL_KEYDOWN){
+    else if(event->type == SDL_KEYDOWN){
         switch(event->key.keysym.sym) {
             case SDLK_w:
                 gCameraVelocity.z = CameraTopSpeed;
@@ -362,7 +404,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // creating a stencil buffer
 
     // Create an OpenGL window and context with SDL
-    window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("OpenGL", 100, 100, WindowWidth, WindowHeight,  SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     context = SDL_GL_CreateContext(window);
     if(!window || !context) return false;
 
