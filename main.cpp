@@ -11,26 +11,39 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "shared_globals.hpp"
+#include "flycamera.hpp"
 #include "shader.hpp"
 #include "texture.hpp"
 #include "utility.hpp"
+
+//Initialize camera variables
+bool gWireframeMode { false };
+
+float gDeltaTime {0.f};
+bool gMouseWarped {true};
+
+extern const int gWindowWidth {800};
+extern const int gWindowHeight {600};
+SDL_Window* gWindow {nullptr};
+FlyCamera* gCamera {nullptr};
 
 bool init(SDL_Window*& window, SDL_GLContext& context);
 void close(SDL_GLContext& context);
 void processInput(SDL_Event* event);
 
 int main(int argc, char* argv[]) {
-    SDL_Window* window {};
     SDL_GLContext context {};
 
     // Initialize SDL context
-    if(!init(window, context)) {
+    if(!init(gWindow, context)) {
         close(context);
         return 1;
     }
 
     //Load shader program
     Shader shader {"shaders/vertex.vs", "shaders/fragment.fs"};
+    //Vertex attrib arrays
     GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
     GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
@@ -196,45 +209,31 @@ int main(int argc, char* argv[]) {
         glm::vec3(-3.f, -7.2f, -14.7f)
     };
 
-    glm::vec3 camVelocity {0.f, 0.f, 0.f};
+    uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
 
-    // The projection matrix will transform our vertices from world space to clip 
-    // space, more on that here: https://jsantell.com/3d-projection/
-    glm::mat4 projection{glm::mat4(1.f)};
-    // make this projection matrix out of parametrs FOV and e(aspect ratio, essentially width/height)
-    projection = glm::perspective(glm::radians(45.f), 800.f/600.f, .1f, 100.f);
-
-    glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, glm::value_ptr(projection));
-
-    //Initialize camera variables
-    glm::vec3 cameraPos {glm::vec3(0.f, 0.f, 3.f)};
-    glm::vec3 cameraDirection {glm::normalize(cameraPos - glm::vec3(0.f, 0.f, 0.f))};
-    glm::vec3 cameraRight {glm::normalize(glm::cross(glm::vec3(0.f, 1.f, 0.f), cameraDirection))};
-    glm::vec3 cameraUp {glm::normalize(glm::cross(cameraDirection, cameraRight))};
-
-    // The View matrix, the inverse of the position of the camera,
-    // transforms vertices such that they are located relative 
-    // to the camera's position, with the camera at (0,0,0)
-    glm::mat4 view {glm::mat4(1.f)};
-    view = glm::lookAt(
-        cameraPos, // camera position
-        cameraPos - cameraDirection, // camera target
-        cameraUp // temporary vector, up
-    );
+    //Initialize camera (and view and projection matrices)
+    gCamera = new FlyCamera{projectionUniform, viewUniform};
+    gCamera->setActive(true); 
+    gCamera->update(0.f);
+    gCamera->setActive(false);
 
     //Main event loop
     SDL_Event event;
-    bool wireframeMode { false };
-
+    bool quit {false};
     while(true) {
         //Check SDL event queue for any events, process them
-        if(SDL_PollEvent(&event)) {
+        while(SDL_PollEvent(&event)) {
             //Handle exit events
-            if(event.type == SDL_QUIT) break;
-            else if(
-                event.type == SDL_KEYUP &&
-                event.key.keysym.sym == SDLK_ESCAPE
-            ) break;
+            if(
+                event.type == SDL_QUIT 
+                || (
+                    event.type == SDL_KEYUP 
+                    && event.key.keysym.sym == SDLK_ESCAPE
+                )
+            ) {
+                quit = true;
+                break;
+            } 
 
             //Handle window resizing events
             else if(event.type == SDL_WINDOWEVENT) {
@@ -248,67 +247,21 @@ int main(int argc, char* argv[]) {
                     break;
                 }
             }
+            else processInput(&event);
 
-            //Handle keydown
-            else if(event.type == SDL_KEYDOWN){
-                switch(event.key.keysym.sym) {
-                    case SDLK_w:
-                        camVelocity.z -= 3.f;
-                    break;
-                    case SDLK_a:
-                        camVelocity.x -= 3.f;
-                    break;
-                    case SDLK_s:
-                        camVelocity.z += 3.f;
-                    break;
-                    case SDLK_d:
-                        camVelocity.x += 3.f;
-                    break;
-                }
-            }
-
-            // Handle keyup
-            else if(event.type == SDL_KEYUP) {
-                switch(event.key.keysym.sym) {
-                    //enable/disable wireframe mode
-                    case SDLK_9:
-                        wireframeMode = !wireframeMode;
-                        if(wireframeMode)
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                        else 
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                    break;
-
-                    // handle camera movements
-                    case SDLK_w:
-                        camVelocity.z += 3.f;
-                    break;
-                    case SDLK_a:
-                        camVelocity.x += 3.f;
-                    break;
-                    case SDLK_s:
-                        camVelocity.z -= 3.f;
-                    break;
-                    case SDLK_d:
-                        camVelocity.x -= 3.f;
-                    break;
-                }
-            }
+            if(gWireframeMode)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else 
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
-        const float radius { 10.f };
-        float camX {
-            static_cast<float>(sin(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
-        };
-        float camZ { 
-            static_cast<float>(cos(static_cast<float>(SDL_GetTicks())/1000.f) * radius)
-        };
-        view = glm::lookAt(
-            glm::vec3(camX, 0.f, camZ), // camera position (on the plane z=0)
-            glm::vec3(0.f,0.f, 0.f), // camera target
-            glm::vec3(0.f, 1.f, 0.f) // temporary vec, up
-        );
+        if(quit) break;
 
-        glUniformMatrix4fv(viewUniform, 1, GL_FALSE, glm::value_ptr(view));
+        //Update time related variables
+        uint64_t currentFrame {SDL_GetTicks64()};
+        gDeltaTime = static_cast<float>(currentFrame - lastFrame)/1000.f;
+        lastFrame = currentFrame;
+
+        gCamera->update(gDeltaTime);
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -332,10 +285,12 @@ int main(int argc, char* argv[]) {
         }
 
         //Update screen
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(gWindow);
     }
 
     // de-allocate resources
+    delete gCamera;
+    gCamera = nullptr;
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
@@ -345,7 +300,9 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void processInput(SDL_Event* event) {}
+void processInput(SDL_Event* event) {
+    gCamera->processInput(event);
+}
 
 bool init(SDL_Window*& window, SDL_GLContext& context) {
     //Initialize SDL subsystems
@@ -359,7 +316,7 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8); // creating a stencil buffer
 
     // Create an OpenGL window and context with SDL
-    window = SDL_CreateWindow("OpenGL", 100, 100, 800, 600,  SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("OpenGL", 100, 100, gWindowWidth, gWindowHeight,  SDL_WINDOW_OPENGL);
     context = SDL_GL_CreateContext(window);
     if(!window || !context) return false;
 
