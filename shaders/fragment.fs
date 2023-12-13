@@ -1,10 +1,11 @@
 #version 330 core
 
-uniform float uniColor;
-
 //We're sampling from 2 textures now
 uniform sampler2D texture1;
 uniform sampler2D texture2;
+
+uniform vec3 lightColor;
+uniform vec3 objectColor;
 
 in vec3 Color;
 in vec2 TextureCoord;
@@ -17,5 +18,5 @@ void main() {
         texture(texture1, TextureCoord),
         texture(texture2, TextureCoord),
         0.2 // 80% of the first texture, and 20% of the second
-    );
+    ) * vec4(lightColor * objectColor, 1.0);
 }

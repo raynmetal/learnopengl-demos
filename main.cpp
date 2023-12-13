@@ -42,15 +42,20 @@ int main(int argc, char* argv[]) {
     }
 
     //Load shader program
-    Shader shader {"shaders/vertex.vs", "shaders/fragment.fs"};
+    Shader objectShader {"shaders/vertex.vs", "shaders/fragment.fs"};
+    Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+
     //Vertex attrib arrays
-    GLint vertexAttrib { glGetAttribLocation(shader.getProgramID(), "position") };
-    GLint colorAttrib { glGetAttribLocation(shader.getProgramID(), "color") };
-    GLint textureCoordAttrib{ glGetAttribLocation(shader.getProgramID(), "textureCoord") };
+    GLint vertexAttrib { glGetAttribLocation(objectShader.getProgramID(), "position") };
+    GLint colorAttrib { glGetAttribLocation(objectShader.getProgramID(), "color") };
+    GLint textureCoordAttrib{ glGetAttribLocation(objectShader.getProgramID(), "textureCoord") };
     //Model, view, projection matrices
-    GLint modelUniform { glGetUniformLocation(shader.getProgramID(), "model")};
-    GLint viewUniform { glGetUniformLocation(shader.getProgramID(), "view")};
-    GLint projectionUniform { glGetUniformLocation(shader.getProgramID(), "projection")};
+    GLint modelUniform { glGetUniformLocation(objectShader.getProgramID(), "model")};
+    GLint viewUniform { glGetUniformLocation(objectShader.getProgramID(), "view")};
+    GLint projectionUniform { glGetUniformLocation(objectShader.getProgramID(), "projection")};
+    //Light-related attributes
+    GLint objectColorUniform {glGetUniformLocation(objectShader.getProgramID(), "objectColor")};
+    GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -86,7 +91,6 @@ int main(int argc, char* argv[]) {
         -.5f, -.5f, 0.5f, // bottom  left front
             0.f, 0.f, 1.f, //(blue)
             0.f, 0.f, // texture bottom left
-        
         -.5f, -.5f, -.5f, // bottom left back
             0.f, 0.f, 0.f,
             0.f, 1.f,
@@ -149,6 +153,7 @@ int main(int argc, char* argv[]) {
 
     // Set up our vertex array object. A set of buffer and pointer
     // bindings used for a particular set of draw calls
+    objectShader.use();
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -156,9 +161,9 @@ int main(int argc, char* argv[]) {
         glEnableVertexAttribArray(vertexAttrib);
         glEnableVertexAttribArray(colorAttrib);
         glEnableVertexAttribArray(textureCoordAttrib);
-        //Specify which buffer to use for vertices, elements
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        //Specify which buffer to use for vertices, elements
         //Define the format of each vertex position in above buffer
         glVertexAttribPointer(
             vertexAttrib, // attrib pointer
@@ -188,31 +193,55 @@ int main(int argc, char* argv[]) {
         );
     glBindVertexArray(0);
 
+    // Set up attribute pointers for the light source shader
+    lightSourceShader.use();
+    GLuint lightSourceVao {};
+    glGenVertexArrays(1, &lightSourceVao);
+    glBindVertexArray(lightSourceVao);
+        GLint lightPositionAttribute {glGetAttribLocation(lightSourceShader.getProgramID(), "position")};
+        glEnableVertexAttribArray(
+            lightPositionAttribute
+        );
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glVertexAttribPointer(
+            lightPositionAttribute,
+            3, GL_FLOAT, GL_FALSE,
+            8 * sizeof(float),
+            reinterpret_cast<void*>(0)
+        );
+    glBindVertexArray(0);
+
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
 
     //Use the shader we loaded as our shader program
-    shader.use();
+    objectShader.use();
+
+    //Set up light source and object colours
+    glm::vec3 lightColor {1.f, 1.f, 1.f};
+    glm::vec3 objectColor {1.f, 0.5f, 0.2f};
+    glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
+    glUniform3f(objectColorUniform, objectColor.r, objectColor.g, objectColor.b);
 
     // Set texture unit for each sampler (in the fragment
     // shader)
-    shader.setInt("texture1", 0);
-    shader.setInt("texture2", 1);
+    objectShader.setInt("texture1", 0);
+    objectShader.setInt("texture2", 1);
 
     // Render 5 instances of the cube at the following
     // positions
     glm::vec3 cubePositions[] {
-        glm::vec3(0.f, 0.f, -2.f),
-        glm::vec3(2.f, 5.f, -15.f),
-        glm::vec3(-1.5f, -2.2f, -12.3f),
-        glm::vec3(5.f,-0.3f, -28.f),
+        glm::vec3(0.f, 0.f, -2.f)
+    };
+    glm::vec3 lightSourcePositions[] {
         glm::vec3(-3.f, -7.2f, -14.7f)
     };
 
     uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
 
     //Initialize camera (and view and projection matrices)
-    gCamera = new FlyCamera{projectionUniform, viewUniform};
+    gCamera = new FlyCamera{};
     gCamera->setActive(true); 
     gCamera->update(0.f);
     gCamera->setActive(false);
@@ -261,11 +290,21 @@ int main(int argc, char* argv[]) {
         gDeltaTime = static_cast<float>(currentFrame - lastFrame)/1000.f;
         lastFrame = currentFrame;
 
+        //Update the camera and related matrices
         gCamera->update(gDeltaTime);
+        glm::mat4 projectionTransform {gCamera->getProjectionMatrix()};
+        glm::mat4 viewTransform {gCamera->getViewMatrix()};
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        objectShader.use();
+        glUniformMatrix4fv(projectionUniform, 1, GL_FALSE,
+            glm::value_ptr(projectionTransform)
+        );
+        glUniformMatrix4fv(viewUniform, 1, GL_FALSE,
+            glm::value_ptr(viewTransform)
+        );
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
@@ -284,6 +323,31 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(0);
         }
 
+        lightSourceShader.use();
+        glUniformMatrix4fv(
+            glGetUniformLocation(lightSourceShader.getProgramID(), "projection")
+            , 1, GL_FALSE, 
+            glm::value_ptr(projectionTransform)
+        );
+        glUniformMatrix4fv(
+            glGetUniformLocation(lightSourceShader.getProgramID(), "view")
+            , 1, GL_FALSE, 
+            glm::value_ptr(viewTransform)
+        );
+        for(glm::vec3 position: lightSourcePositions) {
+            glm::mat4 model {glm::mat4(1.f)};
+            model = glm::translate(model, position);
+            glUniformMatrix4fv(
+                glGetUniformLocation(lightSourceShader.getProgramID(), "model"),
+                1, GL_FALSE, glm::value_ptr(model)
+            );
+
+            //Start drawing
+            glBindVertexArray(lightSourceVao);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
         //Update screen
         SDL_GL_SwapWindow(gWindow);
     }
@@ -294,7 +358,7 @@ int main(int argc, char* argv[]) {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
-    glDeleteProgram(shader.getProgramID());
+    glDeleteProgram(objectShader.getProgramID());
 
     close(context);
     return 0;

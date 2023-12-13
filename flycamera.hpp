@@ -12,11 +12,14 @@
 
 class FlyCamera {
 public:
-    FlyCamera(GLint projectionUniform, GLint viewUniform);
-    FlyCamera(GLint projectionUniform, GLint viewUniform, glm::vec3 position, float yaw, float pitch, float fov);
+    FlyCamera();
+    FlyCamera(glm::vec3 position, float yaw, float pitch, float fov);
 
     void update(float deltaTime);
     void processInput(SDL_Event* event);
+
+    glm::mat4 getViewMatrix();
+    glm::mat4 getProjectionMatrix();
 
     void setActive(bool active);
     void setLookSensitivity(float lookSensitivity);
@@ -31,9 +34,6 @@ private:
     float mFOV { 45.f };
     float mLookSensitivity { 0.1f };
     float mZoomSensitivity { 1.5f };
-
-    GLint mProjectionUniform;
-    GLint mViewUniform;
 
     glm::vec3 mPosition; //position in world units
     glm::vec2 mOrientation; // pitch and yaw, in degrees

@@ -21,19 +21,16 @@ const float MIN_PITCH {-89.f};
 const float MAX_FOV {80.f};
 const float MIN_FOV {40.f};
 
-FlyCamera::FlyCamera(GLint projectionUniform, GLint viewUniform): 
+FlyCamera::FlyCamera(): 
     FlyCamera {
-        projectionUniform, viewUniform, 
         glm::vec3(0.f, 0.f, 0.f), 
         0.f, 0.f,
         45.f
     }
 {}
 
-FlyCamera::FlyCamera(GLint projectionUniform, GLint viewUniform, glm::vec3 position, float yaw, float pitch, float fov): 
+FlyCamera::FlyCamera(glm::vec3 position, float yaw, float pitch, float fov): 
     mFOV {fov},
-    mProjectionUniform{projectionUniform},
-    mViewUniform(viewUniform),
     mPosition {position},
     mOrientation {
         yaw, 
@@ -58,15 +55,14 @@ void FlyCamera::update(float deltaTime) {
     };
     mPosition += deltaTime * mVelocity.z * cameraDirection;
     mPosition += deltaTime * mVelocity.x * glm::normalize(glm::cross(cameraDirection, tempUp));
+}
 
-    //Calculate new projection and view matrices
-    glm::mat4 projectionMatrix {
-        glm::perspective(
-            static_cast<float>(glm::radians(mFOV)),
-            static_cast<float>(gWindowWidth)/static_cast<float>(gWindowHeight),
-            0.1f,
-            100.f
-        )
+glm::mat4 FlyCamera::getViewMatrix(){
+    const glm::vec3 tempUp {0.f, 1.f, 0.f};
+    glm::vec3 cameraDirection {
+        cos(glm::radians(mOrientation.y)) * sin(glm::radians(mOrientation.x)),
+        sin(glm::radians(mOrientation.y)),
+        cos(glm::radians(mOrientation.y)) * (-cos(glm::radians(mOrientation.x)))
     };
     glm::mat4 viewMatrix {
         glm::lookAt(
@@ -75,10 +71,19 @@ void FlyCamera::update(float deltaTime) {
             tempUp
         )
     };
+    return viewMatrix;
+}
 
-    //Send new matrices to GPU
-    glUniformMatrix4fv(mProjectionUniform, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
-    glUniformMatrix4fv(mViewUniform, 1, GL_FALSE, glm::value_ptr(viewMatrix));
+glm::mat4 FlyCamera::getProjectionMatrix(){
+    glm::mat4 projectionMatrix {
+        glm::perspective(
+            static_cast<float>(glm::radians(mFOV)),
+            static_cast<float>(gWindowWidth)/static_cast<float>(gWindowHeight),
+            0.1f,
+            100.f
+        )
+    };
+    return projectionMatrix;
 }
 
 void FlyCamera::processInput(SDL_Event* event) {
