@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
     //Light-related attributes
     GLint objectColorUniform {glGetUniformLocation(objectShader.getProgramID(), "objectColor")};
     GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
+    GLint ambientStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "ambientStrength")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -77,32 +78,41 @@ int main(int argc, char* argv[]) {
     }
     txtr2.bindTexture(true);
 
+    glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
     //Set up a polygon to draw; here, a triangle
     float vertices[] {
         -.5f, .5f, .5f, // topleft front
             1.f, 0.f, 0.f, //(red)
             0.f, 1.f, // [sample] texture top left
-        .5f, .5f, 0.5f, // topright front
+            -diag.x, diag.y, diag.z, // normal
+        .5f, .5f, .5f, // topright front
             1.f, 1.f, 0.f, // (yellow)
             1.f, 1.f, // texture top right
-        .5f, -.5f, 0.5f, // bottom right front
+            diag.x, diag.y, diag.z,
+        .5f, -.5f, .5f, // bottom right front
             0.f, 1.f, 0.f, //(green)
             1.f, 0.f, // texture bottom right
-        -.5f, -.5f, 0.5f, // bottom  left front
+            diag.x, -diag.y, diag.z,
+        -.5f, -.5f, .5f, // bottom  left front
             0.f, 0.f, 1.f, //(blue)
             0.f, 0.f, // texture bottom left
+            -diag.x, -diag.y, diag.z,
         -.5f, -.5f, -.5f, // bottom left back
             0.f, 0.f, 0.f,
             0.f, 1.f,
+            -diag.x, -diag.y, -diag.z,
         .5f, -.5f, -.5f, // bottom right back
             0.f, 0.f, 0.f,
             1.f, 1.f,
+            diag.x, -diag.y, -diag.z,
         .5f, .5f, -.5f, // top right back
             0.f, 0.f, 0.f,
             1.f, 0.f,
+            diag.x, diag.y, -diag.z,
         -.5f, .5f, -.5f, // top left back
             0.f, 0.f, 0.f,
             0.f, 0.f
+            -diag.x, diag.y, -diag.z
     };
 
     // Set up element buffer
@@ -153,7 +163,6 @@ int main(int argc, char* argv[]) {
 
     // Set up our vertex array object. A set of buffer and pointer
     // bindings used for a particular set of draw calls
-    objectShader.use();
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -175,26 +184,25 @@ int main(int argc, char* argv[]) {
             // |-----| --> Offset
             //       |-----------------------| --> Stride
             //       |--------| --> Single vertex element (size of GL_FLOAT)
-            8*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
+            11*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
             reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
         );
         //Define the format of each vertex color in above buffer
         glVertexAttribPointer(
             colorAttrib, 
             3, GL_FLOAT, GL_FALSE,
-            8*sizeof(float), // Stride
+            11*sizeof(float), // Stride
             reinterpret_cast<void*>(3*sizeof(float)) // Offset
         );
         glVertexAttribPointer(
             textureCoordAttrib,
             2, GL_FLOAT, GL_FALSE,
-            8*sizeof(float), // Stride
+            11*sizeof(float), // Stride
             reinterpret_cast<void*>(6*sizeof(float)) // Offset
         );
     glBindVertexArray(0);
 
     // Set up attribute pointers for the light source shader
-    lightSourceShader.use();
     GLuint lightSourceVao {};
     glGenVertexArrays(1, &lightSourceVao);
     glBindVertexArray(lightSourceVao);
@@ -207,7 +215,7 @@ int main(int argc, char* argv[]) {
         glVertexAttribPointer(
             lightPositionAttribute,
             3, GL_FLOAT, GL_FALSE,
-            8 * sizeof(float),
+            11 * sizeof(float),
             reinterpret_cast<void*>(0)
         );
     glBindVertexArray(0);
@@ -221,8 +229,10 @@ int main(int argc, char* argv[]) {
     //Set up light source and object colours
     glm::vec3 lightColor {1.f, 1.f, 1.f};
     glm::vec3 objectColor {1.f, 0.5f, 0.2f};
+    GLfloat ambientStrength {.2f};
     glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
     glUniform3f(objectColorUniform, objectColor.r, objectColor.g, objectColor.b);
+    glUniform1f(ambientStrengthUniform, ambientStrength);
 
     // Set texture unit for each sampler (in the fragment
     // shader)
