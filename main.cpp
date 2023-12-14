@@ -49,11 +49,14 @@ int main(int argc, char* argv[]) {
     GLint vertexAttrib { glGetAttribLocation(objectShader.getProgramID(), "position") };
     GLint colorAttrib { glGetAttribLocation(objectShader.getProgramID(), "color") };
     GLint textureCoordAttrib{ glGetAttribLocation(objectShader.getProgramID(), "textureCoord") };
+    GLint normalAttrib {glGetAttribLocation(objectShader.getProgramID(), "normal")};
     //Model, view, projection matrices
     GLint modelUniform { glGetUniformLocation(objectShader.getProgramID(), "model")};
+    GLint normalUniform { glGetUniformLocation(objectShader.getProgramID(), "normalMat")};
     GLint viewUniform { glGetUniformLocation(objectShader.getProgramID(), "view")};
     GLint projectionUniform { glGetUniformLocation(objectShader.getProgramID(), "projection")};
     //Light-related attributes
+    GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "lightPos")};
     GLint objectColorUniform {glGetUniformLocation(objectShader.getProgramID(), "objectColor")};
     GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
     GLint ambientStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "ambientStrength")};
@@ -111,7 +114,7 @@ int main(int argc, char* argv[]) {
             diag.x, diag.y, -diag.z,
         -.5f, .5f, -.5f, // top left back
             0.f, 0.f, 0.f,
-            0.f, 0.f
+            0.f, 0.f,
             -diag.x, diag.y, -diag.z
     };
 
@@ -170,6 +173,7 @@ int main(int argc, char* argv[]) {
         glEnableVertexAttribArray(vertexAttrib);
         glEnableVertexAttribArray(colorAttrib);
         glEnableVertexAttribArray(textureCoordAttrib);
+        glEnableVertexAttribArray(normalAttrib);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         //Specify which buffer to use for vertices, elements
@@ -200,6 +204,12 @@ int main(int argc, char* argv[]) {
             11*sizeof(float), // Stride
             reinterpret_cast<void*>(6*sizeof(float)) // Offset
         );
+        glVertexAttribPointer(
+            normalAttrib,
+            3, GL_FLOAT, GL_FALSE,
+            11*sizeof(float), // Stride
+            reinterpret_cast<void*>(8*sizeof(float)) // Offset
+        );
     glBindVertexArray(0);
 
     // Set up attribute pointers for the light source shader
@@ -227,9 +237,11 @@ int main(int argc, char* argv[]) {
     objectShader.use();
 
     //Set up light source and object colours
+    glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
     glm::vec3 lightColor {1.f, 1.f, 1.f};
     glm::vec3 objectColor {1.f, 0.5f, 0.2f};
     GLfloat ambientStrength {.2f};
+    glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
     glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
     glUniform3f(objectColorUniform, objectColor.r, objectColor.g, objectColor.b);
     glUniform1f(ambientStrengthUniform, ambientStrength);
@@ -239,13 +251,9 @@ int main(int argc, char* argv[]) {
     objectShader.setInt("texture1", 0);
     objectShader.setInt("texture2", 1);
 
-    // Render 5 instances of the cube at the following
-    // positions
+    //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
         glm::vec3(0.f, 0.f, -2.f)
-    };
-    glm::vec3 lightSourcePositions[] {
-        glm::vec3(-3.f, -7.2f, -14.7f)
     };
 
     uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
@@ -308,6 +316,7 @@ int main(int argc, char* argv[]) {
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        //Draw objects
         objectShader.use();
         glUniformMatrix4fv(projectionUniform, 1, GL_FALSE,
             glm::value_ptr(projectionTransform)
@@ -319,13 +328,10 @@ int main(int argc, char* argv[]) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
             // world space
-            glm::mat4 model {glm::mat4(1.f)};
-            model = glm::translate(model, position);
-            model = glm::rotate(model, 
-                glm::radians(static_cast<float>(SDL_GetTicks())/10.f),
-                position
-            );
+            glm::mat4 model {glm::translate(glm::mat4(1.f), position)};
+            glm::mat4 normal { glm::transpose(glm::inverse(model)) };
             glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(normalUniform, 1, GL_FALSE, glm::value_ptr(normal));
 
             //Start drawing
             glBindVertexArray(vao);
@@ -333,6 +339,7 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(0);
         }
 
+        //Draw light source
         lightSourceShader.use();
         glUniformMatrix4fv(
             glGetUniformLocation(lightSourceShader.getProgramID(), "projection")
@@ -344,19 +351,18 @@ int main(int argc, char* argv[]) {
             , 1, GL_FALSE, 
             glm::value_ptr(viewTransform)
         );
-        for(glm::vec3 position: lightSourcePositions) {
-            glm::mat4 model {glm::mat4(1.f)};
-            model = glm::translate(model, position);
-            glUniformMatrix4fv(
-                glGetUniformLocation(lightSourceShader.getProgramID(), "model"),
-                1, GL_FALSE, glm::value_ptr(model)
-            );
+        glm::mat4 model {glm::mat4(1.f)};
+        model = glm::translate(model, lightSourcePosition);
+        model = glm::scale(model, glm::vec3(.3f));
+        glUniformMatrix4fv(
+            glGetUniformLocation(lightSourceShader.getProgramID(), "model"),
+            1, GL_FALSE, glm::value_ptr(model)
+        );
 
-            //Start drawing
-            glBindVertexArray(lightSourceVao);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-            glBindVertexArray(0);
-        }
+        //Start drawing
+        glBindVertexArray(lightSourceVao);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
