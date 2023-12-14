@@ -312,6 +312,7 @@ int main(int argc, char* argv[]) {
         gCamera->update(gDeltaTime);
         glm::mat4 projectionTransform {gCamera->getProjectionMatrix()};
         glm::mat4 viewTransform {gCamera->getViewMatrix()};
+        lightSourcePosition = glm::vec3(2.85f * sin(static_cast<float>(currentFrame)/1000.f), 2.f, 2.85f * cos(static_cast<float>(currentFrame)/1000.f));
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -324,6 +325,7 @@ int main(int argc, char* argv[]) {
         glUniformMatrix4fv(viewUniform, 1, GL_FALSE,
             glm::value_ptr(viewTransform)
         );
+        glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
@@ -332,7 +334,6 @@ int main(int argc, char* argv[]) {
             glm::mat4 normal { glm::transpose(glm::inverse(model)) };
             glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(normalUniform, 1, GL_FALSE, glm::value_ptr(normal));
-
             //Start drawing
             glBindVertexArray(vao);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -358,7 +359,6 @@ int main(int argc, char* argv[]) {
             glGetUniformLocation(lightSourceShader.getProgramID(), "model"),
             1, GL_FALSE, glm::value_ptr(model)
         );
-
         //Start drawing
         glBindVertexArray(lightSourceVao);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
