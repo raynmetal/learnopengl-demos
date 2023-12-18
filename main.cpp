@@ -67,13 +67,22 @@ int main(int argc, char* argv[]) {
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
-    Texture txtr1 { "media/container2.png"  };
+    Texture txtr1 { "media/container2.png" };
     if(!txtr1.getTextureID()) {
         std::cout << "Oops, our texture failed to load" << std::endl;
         close(context);
         return 1;
     }
     txtr1.bindTexture(true);
+
+    glActiveTexture(GL_TEXTURE1);
+    Texture txtr2 { "media/container2_specular.png" };
+    if(!txtr2.getTextureID()) {
+        std::cout << "Oops, our specular map texture failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
+    txtr2.bindTexture(true);
 
     glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
     //Set up a polygon to draw; here, a triangle
@@ -242,11 +251,16 @@ int main(int argc, char* argv[]) {
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
-    GLint materialShine {16};
+    GLint materialShine {32};
+    //Bind diffuse map
     glActiveTexture(GL_TEXTURE0);
-    txtr1.bindTexture();
+    txtr1.bindTexture(true);
     glUniform1i(materialDiffuseUniform, 0);
-    glUniform3f(materialSpecularUniform, materialSpecular.r, materialSpecular.g, materialSpecular.b);
+    //Bind specular map
+    glActiveTexture(GL_TEXTURE1);
+    txtr2.bindTexture(true);
+    glUniform1i(materialSpecularUniform, 1);
+    //Set material shininess
     glUniform1i(materialShineUniform, materialShine);
 
     //Render an instance of the cube at the following position

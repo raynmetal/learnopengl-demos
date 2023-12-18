@@ -6,3 +6,7 @@
 /**/*.a
 /**/*.dll
 /**/*.exe
+
+#Media files
+/**/*.png
+/**/*.jpg

@@ -2,7 +2,7 @@
 
 struct Material {
     sampler2D diffuse;
-    vec3 specular;
+    sampler2D specular;
     int shine;
 };
 
@@ -30,6 +30,7 @@ void main() {
     vec3 lightDir = normalize(FragPos - light.position);
     vec3 eyeDir = normalize(eyePos - FragPos);
     vec3 txtrColor = vec3(texture(material.diffuse, TextureCoord));
+    vec3 specColor = vec3(texture(material.specular, TextureCoord));
 
     //Calculate intensity of ambient color
     vec3 ambient = (
@@ -52,7 +53,7 @@ void main() {
         (
             pow(max(dot(reflectionDir, eyeDir), 0.0), 
                 material.shine) 
-            * material.specular
+            * specColor
         )
         * light.specular
     );
