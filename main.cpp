@@ -61,30 +61,19 @@ int main(int argc, char* argv[]) {
     GLint lightDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "light.diffuse")};
     GLint lightSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "light.specular")};
     //Light-reactive material attributes
-    GLint materialAmbientUniform { glGetUniformLocation(objectShader.getProgramID(), "material.ambient")};
     GLint materialDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "material.diffuse")};
     GLint materialSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "material.specular")};
     GLint materialShineUniform { glGetUniformLocation(objectShader.getProgramID(), "material.shine")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
-    Texture txtr1 { "media/wall.jpg"  };
+    Texture txtr1 { "media/container2.png"  };
     if(!txtr1.getTextureID()) {
         std::cout << "Oops, our texture failed to load" << std::endl;
         close(context);
         return 1;
     }
     txtr1.bindTexture(true);
-
-    //Load second texture into texture unit 1
-    glActiveTexture(GL_TEXTURE1);
-    Texture txtr2 { "media/awesomeface.png"  };
-    if(!txtr2.getTextureID()) {
-        std::cout << "Oops, our texture failed to load" << std::endl;
-        close(context);
-        return 1;
-    }
-    txtr2.bindTexture(true);
 
     glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
     //Set up a polygon to draw; here, a triangle
@@ -252,19 +241,13 @@ int main(int argc, char* argv[]) {
     glUniform3f(lightSpecularUniform, lightSpecular.r, lightSpecular.g, lightSpecular.b);
 
     //Set up material properties
-    glm::vec3 materialAmbient {1.f, 0.5f, 0.31f};
-    glm::vec3 materialDiffuse {1.f, .5f, .31f};
-    glm::vec3 materialSpecular {.5f, .5f, .5f};
-    GLint materialShine {32};
-    glUniform3f(materialAmbientUniform, materialAmbient.r, materialAmbient.g, materialAmbient.b);
-    glUniform3f(materialDiffuseUniform, materialDiffuse.r, materialDiffuse.g, materialDiffuse.b);
+    glm::vec3 materialSpecular {.2f, .2f, .2f};
+    GLint materialShine {16};
+    glActiveTexture(GL_TEXTURE0);
+    txtr1.bindTexture();
+    glUniform1i(materialDiffuseUniform, 0);
     glUniform3f(materialSpecularUniform, materialSpecular.r, materialSpecular.g, materialSpecular.b);
     glUniform1i(materialShineUniform, materialShine);
-
-    // Set texture unit for each sampler (in the fragment
-    // shader)
-    objectShader.setInt("texture1", 0);
-    objectShader.setInt("texture2", 1);
 
     //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
