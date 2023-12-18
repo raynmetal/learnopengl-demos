@@ -57,6 +57,10 @@ void FlyCamera::update(float deltaTime) {
     mPosition += deltaTime * mVelocity.x * glm::normalize(glm::cross(cameraDirection, tempUp));
 }
 
+glm::vec3 FlyCamera::getPosition() {
+    return mPosition;
+}
+
 glm::mat4 FlyCamera::getViewMatrix(){
     const glm::vec3 tempUp {0.f, 1.f, 0.f};
     glm::vec3 cameraDirection {

@@ -21,7 +21,6 @@
 bool gWireframeMode { false };
 
 float gDeltaTime {0.f};
-bool gMouseWarped {true};
 
 extern const int gWindowWidth {800};
 extern const int gWindowHeight {600};
@@ -56,10 +55,13 @@ int main(int argc, char* argv[]) {
     GLint viewUniform { glGetUniformLocation(objectShader.getProgramID(), "view")};
     GLint projectionUniform { glGetUniformLocation(objectShader.getProgramID(), "projection")};
     //Light-related attributes
+    GLint eyePositionUniform { glGetUniformLocation(objectShader.getProgramID(), "eyePos")};
     GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "lightPos")};
     GLint objectColorUniform {glGetUniformLocation(objectShader.getProgramID(), "objectColor")};
     GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
     GLint ambientStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "ambientStrength")};
+    GLint specularStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "specularStrength")};
+    GLint specularShineUniform { glGetUniformLocation(objectShader.getProgramID(), "specularShine")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -240,11 +242,15 @@ int main(int argc, char* argv[]) {
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
     glm::vec3 lightColor {1.f, 1.f, 1.f};
     glm::vec3 objectColor {1.f, 0.5f, 0.2f};
-    GLfloat ambientStrength {.2f};
+    GLfloat ambientStrength {.1f};
+    GLfloat specularStrength {.8f};
+    GLint specularShine {32};
     glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
     glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
     glUniform3f(objectColorUniform, objectColor.r, objectColor.g, objectColor.b);
     glUniform1f(ambientStrengthUniform, ambientStrength);
+    glUniform1f(specularStrengthUniform, specularStrength);
+    glUniform1i(specularShineUniform, specularShine);
 
     // Set texture unit for each sampler (in the fragment
     // shader)
@@ -263,6 +269,7 @@ int main(int argc, char* argv[]) {
     gCamera->setActive(true); 
     gCamera->update(0.f);
     gCamera->setActive(false);
+    glm::vec3 cameraPosition {gCamera->getPosition()};
 
     //Main event loop
     SDL_Event event;
@@ -313,6 +320,7 @@ int main(int argc, char* argv[]) {
         glm::mat4 projectionTransform {gCamera->getProjectionMatrix()};
         glm::mat4 viewTransform {gCamera->getViewMatrix()};
         lightSourcePosition = glm::vec3(2.85f * sin(static_cast<float>(currentFrame)/1000.f), 2.f, 2.85f * cos(static_cast<float>(currentFrame)/1000.f));
+        cameraPosition = gCamera->getPosition();
 
         //Clear colour and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -326,6 +334,7 @@ int main(int argc, char* argv[]) {
             glm::value_ptr(viewTransform)
         );
         glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
+        glUniform3f(eyePositionUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 

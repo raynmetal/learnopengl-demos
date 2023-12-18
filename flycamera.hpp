@@ -18,6 +18,7 @@ public:
     void update(float deltaTime);
     void processInput(SDL_Event* event);
 
+    glm::vec3 getPosition();
     glm::mat4 getViewMatrix();
     glm::mat4 getProjectionMatrix();
 
