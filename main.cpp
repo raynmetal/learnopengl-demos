@@ -57,11 +57,12 @@ int main(int argc, char* argv[]) {
     //Light-related attributes
     GLint eyePositionUniform { glGetUniformLocation(objectShader.getProgramID(), "eyePos")};
     GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "lightPos")};
-    GLint objectColorUniform {glGetUniformLocation(objectShader.getProgramID(), "objectColor")};
     GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
-    GLint ambientStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "ambientStrength")};
-    GLint specularStrengthUniform { glGetUniformLocation(objectShader.getProgramID(), "specularStrength")};
-    GLint specularShineUniform { glGetUniformLocation(objectShader.getProgramID(), "specularShine")};
+    //Light-reactive material attributes
+    GLint materialAmbientUniform { glGetUniformLocation(objectShader.getProgramID(), "material.ambient")};
+    GLint materialDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "material.diffuse")};
+    GLint materialSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "material.specular")};
+    GLint materialShineUniform { glGetUniformLocation(objectShader.getProgramID(), "material.shine")};
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -238,19 +239,21 @@ int main(int argc, char* argv[]) {
     //Use the shader we loaded as our shader program
     objectShader.use();
 
-    //Set up light source and object colours
+    //Set up light source
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
     glm::vec3 lightColor {1.f, 1.f, 1.f};
-    glm::vec3 objectColor {1.f, 0.5f, 0.2f};
-    GLfloat ambientStrength {.1f};
-    GLfloat specularStrength {.8f};
-    GLint specularShine {32};
     glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
     glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
-    glUniform3f(objectColorUniform, objectColor.r, objectColor.g, objectColor.b);
-    glUniform1f(ambientStrengthUniform, ambientStrength);
-    glUniform1f(specularStrengthUniform, specularStrength);
-    glUniform1i(specularShineUniform, specularShine);
+
+    //Set up material properties
+    glm::vec3 materialAmbient {1.f, 0.5f, 0.31f};
+    glm::vec3 materialDiffuse {1.f, .5f, .31f};
+    glm::vec3 materialSpecular {.5f, .5f, .5f};
+    GLint materialShine {32};
+    glUniform3f(materialAmbientUniform, materialAmbient.r, materialAmbient.g, materialAmbient.b);
+    glUniform3f(materialDiffuseUniform, materialDiffuse.r, materialDiffuse.g, materialDiffuse.b);
+    glUniform3f(materialSpecularUniform, materialSpecular.r, materialSpecular.g, materialSpecular.b);
+    glUniform1i(materialShineUniform, materialShine);
 
     // Set texture unit for each sampler (in the fragment
     // shader)
