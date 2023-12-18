@@ -7,13 +7,20 @@ struct Material {
     int shine;
 };
 
+struct Light {
+    vec3 position;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
 //We're sampling from 2 textures now
 uniform sampler2D texture1;
 uniform sampler2D texture2;
 
 uniform vec3 eyePos;
-uniform vec3 lightPos;
-uniform vec3 lightColor;
+uniform Light light;
 uniform Material material;
 
 in vec3 Color;
@@ -26,24 +33,24 @@ out vec4 outColor;
 void main() {
     //Vectors we'll reuse for various lighting calculations
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(FragPos - lightPos);
+    vec3 lightDir = normalize(FragPos - light.position);
     vec3 eyeDir = normalize(eyePos - FragPos);
 
     //Calculate intensity of ambient color
     vec3 ambient = 
         material.ambient 
-        * lightColor;
+        * light.ambient;
 
     //Calculate intensity of diffuse colour
     vec3 diffuse = 
         (max(dot(norm, -lightDir), 0.0) * material.diffuse) 
-        * lightColor;
+        * light.diffuse;
 
     //Calculate intensity of specular light
     vec3 reflectionDir = lightDir - 2 * dot(lightDir, norm) * norm;
     vec3 specular = 
         (pow(max(dot(reflectionDir, eyeDir), 0.0), material.shine) * material.specular) 
-        * lightColor;
+        * light.specular;
 
     // Color output is determined by vertex
     outColor = mix(

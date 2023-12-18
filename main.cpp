@@ -56,8 +56,10 @@ int main(int argc, char* argv[]) {
     GLint projectionUniform { glGetUniformLocation(objectShader.getProgramID(), "projection")};
     //Light-related attributes
     GLint eyePositionUniform { glGetUniformLocation(objectShader.getProgramID(), "eyePos")};
-    GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "lightPos")};
-    GLint lightColorUniform { glGetUniformLocation(objectShader.getProgramID(), "lightColor")};
+    GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "light.position")};
+    GLint lightAmbientUniform { glGetUniformLocation(objectShader.getProgramID(), "light.ambient")};
+    GLint lightDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "light.diffuse")};
+    GLint lightSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "light.specular")};
     //Light-reactive material attributes
     GLint materialAmbientUniform { glGetUniformLocation(objectShader.getProgramID(), "material.ambient")};
     GLint materialDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "material.diffuse")};
@@ -239,11 +241,15 @@ int main(int argc, char* argv[]) {
     //Use the shader we loaded as our shader program
     objectShader.use();
 
-    //Set up light source
+    //Set up light source properties
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
-    glm::vec3 lightColor {1.f, 1.f, 1.f};
+    glm::vec3 lightAmbient {.2f, .2f, .2f};
+    glm::vec3 lightDiffuse {.5f, .5f, .5f};
+    glm::vec3 lightSpecular {1.f, 1.f, 1.f};
     glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
-    glUniform3f(lightColorUniform, lightColor.r, lightColor.g, lightColor.b);
+    glUniform3f(lightAmbientUniform, lightAmbient.r, lightAmbient.g, lightAmbient.b);
+    glUniform3f(lightDiffuseUniform, lightDiffuse.r, lightDiffuse.g, lightDiffuse.b);
+    glUniform3f(lightSpecularUniform, lightSpecular.r, lightSpecular.g, lightSpecular.b);
 
     //Set up material properties
     glm::vec3 materialAmbient {1.f, 0.5f, 0.31f};
