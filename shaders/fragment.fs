@@ -7,7 +7,8 @@ struct Material {
 };
 
 struct Light {
-    vec3 position;
+    // vec3 position;
+    vec3 direction;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -27,7 +28,7 @@ out vec4 outColor;
 void main() {
     //Vectors we'll reuse for various lighting calculations
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(FragPos - light.position);
+    vec3 lightDir = normalize(light.direction);
     vec3 eyeDir = normalize(eyePos - FragPos);
     vec3 txtrColor = vec3(texture(material.diffuse, TextureCoord));
     vec3 specColor = vec3(texture(material.specular, TextureCoord));
