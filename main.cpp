@@ -44,27 +44,6 @@ int main(int argc, char* argv[]) {
     Shader objectShader {"shaders/vertex.vs", "shaders/fragment.fs"};
     Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
 
-    //Vertex attrib arrays
-    GLint vertexAttrib { glGetAttribLocation(objectShader.getProgramID(), "position") };
-    GLint colorAttrib { glGetAttribLocation(objectShader.getProgramID(), "color") };
-    GLint textureCoordAttrib{ glGetAttribLocation(objectShader.getProgramID(), "textureCoord") };
-    GLint normalAttrib {glGetAttribLocation(objectShader.getProgramID(), "normal")};
-    //Model, view, projection matrices
-    GLint modelUniform { glGetUniformLocation(objectShader.getProgramID(), "model")};
-    GLint normalUniform { glGetUniformLocation(objectShader.getProgramID(), "normalMat")};
-    GLint viewUniform { glGetUniformLocation(objectShader.getProgramID(), "view")};
-    GLint projectionUniform { glGetUniformLocation(objectShader.getProgramID(), "projection")};
-    //Light-related attributes
-    GLint eyePositionUniform { glGetUniformLocation(objectShader.getProgramID(), "eyePos")};
-    GLint lightPositionUniform { glGetUniformLocation(objectShader.getProgramID(), "light.position")};
-    GLint lightAmbientUniform { glGetUniformLocation(objectShader.getProgramID(), "light.ambient")};
-    GLint lightDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "light.diffuse")};
-    GLint lightSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "light.specular")};
-    //Light-reactive material attributes
-    GLint materialDiffuseUniform { glGetUniformLocation(objectShader.getProgramID(), "material.diffuse")};
-    GLint materialSpecularUniform { glGetUniformLocation(objectShader.getProgramID(), "material.specular")};
-    GLint materialShineUniform { glGetUniformLocation(objectShader.getProgramID(), "material.shine")};
-
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
     Texture txtr1 { "media/container2.png" };
@@ -169,68 +148,36 @@ int main(int argc, char* argv[]) {
 
     // Set up our vertex array object. A set of buffer and pointer
     // bindings used for a particular set of draw calls
+    objectShader.use();
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
         //Enable vertex pointer (one for position, another for colour)
-        glEnableVertexAttribArray(vertexAttrib);
-        glEnableVertexAttribArray(colorAttrib);
-        glEnableVertexAttribArray(textureCoordAttrib);
-        glEnableVertexAttribArray(normalAttrib);
+        objectShader.enableAttribArray("position");
+        objectShader.enableAttribArray("color");
+        objectShader.enableAttribArray("textureCoord");
+        objectShader.enableAttribArray("normal");
+
+        //Specify which buffer to use for vertices, elements
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        //Specify which buffer to use for vertices, elements
-        //Define the format of each vertex position in above buffer
-        glVertexAttribPointer(
-            vertexAttrib, // attrib pointer
-            3, // Number of values for a "single" input element
-            GL_FLOAT, //The format of each component
-            GL_FALSE, //Normalize? in case not floating point
-            //Format of the attribute array, in terms of
-            // |.....|VERTEX_0|.......||.....|VERTEX_1|.......|
-            // |-----| --> Offset
-            //       |-----------------------| --> Stride
-            //       |--------| --> Single vertex element (size of GL_FLOAT)
-            11*sizeof(float), // Stride: number of bytes between each position, with 0 indicating there's no offset to the next element
-            reinterpret_cast<void*>(0) // Offset: offset of the first element relative to the start of the array
-        );
-        //Define the format of each vertex color in above buffer
-        glVertexAttribPointer(
-            colorAttrib, 
-            3, GL_FLOAT, GL_FALSE,
-            11*sizeof(float), // Stride
-            reinterpret_cast<void*>(3*sizeof(float)) // Offset
-        );
-        glVertexAttribPointer(
-            textureCoordAttrib,
-            2, GL_FLOAT, GL_FALSE,
-            11*sizeof(float), // Stride
-            reinterpret_cast<void*>(6*sizeof(float)) // Offset
-        );
-        glVertexAttribPointer(
-            normalAttrib,
-            3, GL_FLOAT, GL_FALSE,
-            11*sizeof(float), // Stride
-            reinterpret_cast<void*>(8*sizeof(float)) // Offset
-        );
+
+        //Define the format of each vertex position, color, texture coordinates, and normals
+        objectShader.setAttribPointerF("position", 3, 11, 0);
+        objectShader.setAttribPointerF("color", 3, 11, 3);
+        objectShader.setAttribPointerF("textureCoord", 2, 11, 6);
+        objectShader.setAttribPointerF("normal", 3, 11, 8);
     glBindVertexArray(0);
 
     // Set up attribute pointers for the light source shader
+    lightSourceShader.use();
     GLuint lightSourceVao {};
     glGenVertexArrays(1, &lightSourceVao);
     glBindVertexArray(lightSourceVao);
-        GLint lightPositionAttribute {glGetAttribLocation(lightSourceShader.getProgramID(), "position")};
-        glEnableVertexAttribArray(
-            lightPositionAttribute
-        );
+        lightSourceShader.enableAttribArray("position");
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glVertexAttribPointer(
-            lightPositionAttribute,
-            3, GL_FLOAT, GL_FALSE,
-            11 * sizeof(float),
-            reinterpret_cast<void*>(0)
-        );
+        lightSourceShader.setAttribPointerF("position", 3, 11, 0);
     glBindVertexArray(0);
 
     //Set clear colour to a dark green-blueish colour
@@ -244,24 +191,24 @@ int main(int argc, char* argv[]) {
     glm::vec3 lightAmbient {.2f, .2f, .2f};
     glm::vec3 lightDiffuse {.5f, .5f, .5f};
     glm::vec3 lightSpecular {1.f, 1.f, 1.f};
-    glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
-    glUniform3f(lightAmbientUniform, lightAmbient.r, lightAmbient.g, lightAmbient.b);
-    glUniform3f(lightDiffuseUniform, lightDiffuse.r, lightDiffuse.g, lightDiffuse.b);
-    glUniform3f(lightSpecularUniform, lightSpecular.r, lightSpecular.g, lightSpecular.b);
+    objectShader.setVec3("light.position", lightSourcePosition);
+    objectShader.setVec3("light.ambient", lightAmbient);
+    objectShader.setVec3("light.diffuse", lightDiffuse);
+    objectShader.setVec3("light.specular", lightSpecular);
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
     GLint materialShine {32};
-    //Bind diffuse map
+    // --
     glActiveTexture(GL_TEXTURE0);
     txtr1.bindTexture(true);
-    glUniform1i(materialDiffuseUniform, 0);
-    //Bind specular map
+    objectShader.setInt("material.diffuse", 0);
+    // -- 
     glActiveTexture(GL_TEXTURE1);
     txtr2.bindTexture(true);
-    glUniform1i(materialSpecularUniform, 1);
-    //Set material shininess
-    glUniform1i(materialShineUniform, materialShine);
+    objectShader.setInt("material.specular", 1);
+    // --
+    objectShader.setInt("material.shine", materialShine);
 
     //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
@@ -333,23 +280,19 @@ int main(int argc, char* argv[]) {
 
         //Draw objects
         objectShader.use();
-        glUniformMatrix4fv(projectionUniform, 1, GL_FALSE,
-            glm::value_ptr(projectionTransform)
-        );
-        glUniformMatrix4fv(viewUniform, 1, GL_FALSE,
-            glm::value_ptr(viewTransform)
-        );
-        glUniform3f(lightPositionUniform, lightSourcePosition.x, lightSourcePosition.y, lightSourcePosition.z);
-        glUniform3f(eyePositionUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        objectShader.setMat4("projection", projectionTransform);
+        objectShader.setMat4("view", viewTransform);
+        objectShader.setVec3("light.position", lightSourcePosition);
+        objectShader.setVec3("eyePos", cameraPosition);
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
             // world space
             glm::mat4 model {glm::translate(glm::mat4(1.f), position)};
             glm::mat4 normal { glm::transpose(glm::inverse(model)) };
-            glUniformMatrix4fv(modelUniform, 1, GL_FALSE, glm::value_ptr(model));
-            glUniformMatrix4fv(normalUniform, 1, GL_FALSE, glm::value_ptr(normal));
-            //Start drawing
+            objectShader.setMat4("model", model);
+            objectShader.setMat4("normalMat", normal);
+            //Draw
             glBindVertexArray(vao);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
@@ -357,24 +300,13 @@ int main(int argc, char* argv[]) {
 
         //Draw light source
         lightSourceShader.use();
-        glUniformMatrix4fv(
-            glGetUniformLocation(lightSourceShader.getProgramID(), "projection")
-            , 1, GL_FALSE, 
-            glm::value_ptr(projectionTransform)
-        );
-        glUniformMatrix4fv(
-            glGetUniformLocation(lightSourceShader.getProgramID(), "view")
-            , 1, GL_FALSE, 
-            glm::value_ptr(viewTransform)
-        );
+        lightSourceShader.setMat4("projection", projectionTransform);
+        lightSourceShader.setMat4("view", viewTransform);
         glm::mat4 model {glm::mat4(1.f)};
         model = glm::translate(model, lightSourcePosition);
         model = glm::scale(model, glm::vec3(.3f));
-        glUniformMatrix4fv(
-            glGetUniformLocation(lightSourceShader.getProgramID(), "model"),
-            1, GL_FALSE, glm::value_ptr(model)
-        );
-        //Start drawing
+        lightSourceShader.setMat4("model", model);
+        //Draw
         glBindVertexArray(lightSourceVao);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -387,9 +319,11 @@ int main(int argc, char* argv[]) {
     delete gCamera;
     gCamera = nullptr;
     glDeleteVertexArrays(1, &vao);
+    glDeleteVertexArrays(1, &lightSourceVao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
     glDeleteProgram(objectShader.getProgramID());
+    glDeleteProgram(lightSourceShader.getProgramID());
 
     close(context);
     return 0;

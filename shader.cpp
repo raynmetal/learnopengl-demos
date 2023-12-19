@@ -5,6 +5,10 @@
 
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "shader.hpp"
 
 
@@ -88,14 +92,59 @@ void Shader::use() {
     glUseProgram(mID);
 }
 
-void Shader::setBool(const std::string &name, bool value) const {
-    glUniform1i(glGetUniformLocation(mID, name.c_str()), static_cast<GLint>(value));
+GLint Shader::attribLocation(const std::string& name) const {
+    return glGetAttribLocation(mID, name.c_str());
+}
+GLint Shader::uniformLocation(const std::string& name) const {
+    return glGetUniformLocation(mID, name.c_str());
+}
+void Shader::enableAttribArray(const std::string& name) const {
+    glEnableVertexAttribArray(attribLocation(name));
+}
+void Shader::disableAttribArray(const std::string& name) const {
+    glDisableVertexAttribArray(attribLocation(name));
+}
+void Shader::setAttribPointerF(const std::string& name, int nComponents, int stride, int offset) const {
+    glVertexAttribPointer(
+        attribLocation(name),
+        nComponents, // number of components per elements
+        GL_FLOAT, // data format
+        GL_FALSE, // whether to normalize the data or not
+        stride * sizeof(float), // no. of bytes between elements
+        reinterpret_cast<void*>(offset*sizeof(float)) // offset to the first element, in bytes
+    );
 }
 
-void Shader::setInt(const std::string &name, int value) const {
-    glUniform1i(glGetUniformLocation(mID, name.c_str()), static_cast<GLint>(value));
+void Shader::setBool(const std::string& name, bool value) const {
+    glUniform1i(
+        uniformLocation(name),
+        static_cast<GLint>(value)
+    );
 }
-
-void Shader::setFloat(const std::string &name, float value) const {
-    glUniform1f(glGetUniformLocation(mID, name.c_str()), static_cast<GLfloat>(value));
+void Shader::setInt(const std::string& name, int value) const {
+    glUniform1i(
+        uniformLocation(name),
+        static_cast<GLint>(value)
+    );
+}
+void Shader::setFloat(const std::string& name, float value) const {
+    glUniform1f(
+        uniformLocation(name),
+        static_cast<GLfloat>(value)
+    );
+}
+void Shader::setVec3(const std::string& name, const glm::vec3& value) const {
+    glUniform3fv(
+        uniformLocation(name),
+        1,
+        glm::value_ptr(value)
+    );
+}
+void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
+    glUniformMatrix4fv(
+        uniformLocation(name),
+        1,
+        GL_FALSE,
+        glm::value_ptr(value)
+    );
 }
