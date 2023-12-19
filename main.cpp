@@ -43,6 +43,11 @@ int main(int argc, char* argv[]) {
     //Load shader program
     Shader objectShader {"shaders/vertex.vs", "shaders/fragment.fs"};
     Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+    if(!objectShader.getBuildSuccess() || !lightSourceShader.getBuildSuccess()) {
+        std::cout << "Oops, one of our shaders failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
 
     //Load first texture into texture unit 0
     glActiveTexture(GL_TEXTURE0);
@@ -53,7 +58,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     txtr1.bindTexture(true);
-
     glActiveTexture(GL_TEXTURE1);
     Texture txtr2 { "media/container2_specular.png" };
     if(!txtr2.getTextureID()) {
@@ -322,8 +326,6 @@ int main(int argc, char* argv[]) {
     glDeleteVertexArrays(1, &lightSourceVao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
-    glDeleteProgram(objectShader.getProgramID());
-    glDeleteProgram(lightSourceShader.getProgramID());
 
     close(context);
     return 0;

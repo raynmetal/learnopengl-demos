@@ -12,7 +12,7 @@
 #include "shader.hpp"
 
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath) {
+Shader::Shader(const char* vertexPath, const char* fragmentPath) :mBuildState{false} {
     //Vertex and fragment shader file pointers and sources
     std::string vertexCode;
     std::string fragmentCode;
@@ -22,6 +22,8 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     //Enable exceptions on filepointers
     vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+    bool readSuccess {true};
 
     try {
         vShaderFile.open(vertexPath);
@@ -42,7 +44,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
 
     } catch(std::ifstream::failure& e) {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << std::endl;
+        readSuccess = false;
     }
+    if(!readSuccess) return;
 
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
@@ -59,6 +63,8 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     if(success != GL_TRUE) {
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+        glDeleteShader(vertexShader);
+        return;
     }
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -69,6 +75,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" 
             << infoLog << std::endl;
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        return;
     }
 
     //Create a shader program
@@ -81,16 +90,28 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         glGetProgramInfoLog(mID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
             << infoLog << std::endl;
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        glDeleteProgram(mID);
+        mID = 0;
+        return;
     }
 
-    //Clean up unnecessary shader objects
+    //Clean up (now unnecessary) shader objects
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    // Store build success
+    mBuildState = true;
+}
+Shader::~Shader() {
+    glDeleteProgram(mID);
 }
 
 void Shader::use() {
     glUseProgram(mID);
 }
+bool Shader::getBuildSuccess() { return mBuildState; }
 
 GLint Shader::attribLocation(const std::string& name) const {
     return glGetAttribLocation(mID, name.c_str());

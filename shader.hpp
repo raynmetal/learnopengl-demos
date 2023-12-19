@@ -11,9 +11,11 @@ class Shader {
 public:
     // Constructor, reads and builds shader
     Shader(const char* vertexPath, const char* fragmentPath);
+    ~Shader();
 
     //use/activate this shader
     void use();
+    bool getBuildSuccess();
 
     //utility attrib array functions
     GLint attribLocation(const std::string& name) const;
@@ -34,6 +36,7 @@ public:
 private:
     // program ID
     GLuint mID;
+    bool mBuildState;
 };
 
 #endif
