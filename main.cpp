@@ -216,7 +216,15 @@ int main(int argc, char* argv[]) {
 
     //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
-        glm::vec3(0.f, 0.f, -2.f)
+        glm::vec3(0.f, 0.f, -2.f),
+        glm::vec3(1.f, 1.f, 1.f),
+        glm::vec3(-4.f, -2.f, -3.f),
+        glm::vec3(-7.f, .3f, .5f),
+        glm::vec3(2.f, -3.f, 4.f),
+        glm::vec3(4.f, 3.f, -2.f),
+        glm::vec3(0.f, -6.f, 0.f),
+        glm::vec3(-1.f, -2.f, -14.f),
+        glm::vec3(2.f, 1.f, 7.f)
     };
 
     uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
@@ -290,10 +298,15 @@ int main(int argc, char* argv[]) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
             // world space
-            glm::mat4 model {glm::translate(glm::mat4(1.f), position)};
+            float angle {20.f * position.z};
+
+            glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
             glm::mat4 normal { glm::transpose(glm::inverse(model)) };
+
             objectShader.setMat4("model", model);
             objectShader.setMat4("normalMat", normal);
+
             //Draw
             glBindVertexArray(vao);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
