@@ -191,14 +191,17 @@ int main(int argc, char* argv[]) {
     objectShader.use();
 
     //Set up light source properties
-    glm::vec3 lightSourceDirection {-2.f, -2.f, -2.f};
+    glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
     glm::vec3 lightAmbient {.2f, .2f, .2f};
     glm::vec3 lightDiffuse {.5f, .5f, .5f};
     glm::vec3 lightSpecular {1.f, 1.f, 1.f};
-    objectShader.setVec3("light.direction", lightSourceDirection);
+    objectShader.setVec3("light.position", lightSourcePosition);
     objectShader.setVec3("light.ambient", lightAmbient);
     objectShader.setVec3("light.diffuse", lightDiffuse);
     objectShader.setVec3("light.specular", lightSpecular);
+    objectShader.setFloat("light.constant", 1.f);
+    objectShader.setFloat("light.linear", .09f);
+    objectShader.setFloat("light.quadratic", .032f);
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
@@ -318,7 +321,7 @@ int main(int argc, char* argv[]) {
         lightSourceShader.setMat4("projection", projectionTransform);
         lightSourceShader.setMat4("view", viewTransform);
         glm::mat4 model {glm::mat4(1.f)};
-        model = glm::translate(model, -lightSourceDirection);
+        model = glm::translate(model, lightSourcePosition);
         model = glm::scale(model, glm::vec3(.3f));
         lightSourceShader.setMat4("model", model);
         //Draw

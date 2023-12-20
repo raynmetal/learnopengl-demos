@@ -7,11 +7,15 @@ struct Material {
 };
 
 struct Light {
-    // vec3 position;
-    vec3 direction;
+    vec3 position;
+    // vec3 direction;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 uniform vec3 eyePos;
@@ -28,7 +32,7 @@ out vec4 outColor;
 void main() {
     //Vectors we'll reuse for various lighting calculations
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(light.direction);
+    vec3 lightDir = normalize(FragPos - light.position);
     vec3 eyeDir = normalize(eyePos - FragPos);
     vec3 txtrColor = vec3(texture(material.diffuse, TextureCoord));
     vec3 specColor = vec3(texture(material.specular, TextureCoord));
@@ -58,6 +62,15 @@ void main() {
         )
         * light.specular
     );
+
+    //attenuation related calculations
+    float dist = length(light.position - FragPos);
+    float attenuation = 1.0 /
+        (light.constant + light.linear * dist
+        + light.quadratic * (dist*dist));
+    ambient *= attenuation;
+    diffuse *= attenuation;
+    specular *= attenuation;
 
     // Color output is determined by vertex
     outColor = vec4((ambient + diffuse + specular) * vec3(1.0), 1.0);
