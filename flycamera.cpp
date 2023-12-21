@@ -60,14 +60,18 @@ void FlyCamera::update(float deltaTime) {
 glm::vec3 FlyCamera::getPosition() {
     return mPosition;
 }
-
-glm::mat4 FlyCamera::getViewMatrix(){
-    const glm::vec3 tempUp {0.f, 1.f, 0.f};
+glm::vec3 FlyCamera::getForward() {
     glm::vec3 cameraDirection {
         cos(glm::radians(mOrientation.y)) * sin(glm::radians(mOrientation.x)),
         sin(glm::radians(mOrientation.y)),
         cos(glm::radians(mOrientation.y)) * (-cos(glm::radians(mOrientation.x)))
     };
+    return cameraDirection;
+}
+
+glm::mat4 FlyCamera::getViewMatrix(){
+    const glm::vec3 tempUp {0.f, 1.f, 0.f};
+    glm::vec3 cameraDirection { getForward() };
     glm::mat4 viewMatrix {
         glm::lookAt(
             mPosition,

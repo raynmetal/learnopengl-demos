@@ -19,6 +19,7 @@ public:
     void processInput(SDL_Event* event);
 
     glm::vec3 getPosition();
+    glm::vec3 getForward();
     glm::mat4 getViewMatrix();
     glm::mat4 getProjectionMatrix();
 

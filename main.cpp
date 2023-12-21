@@ -202,6 +202,7 @@ int main(int argc, char* argv[]) {
     objectShader.setFloat("light.constant", 1.f);
     objectShader.setFloat("light.linear", .09f);
     objectShader.setFloat("light.quadratic", .032f);
+    objectShader.setFloat("light.cosCutoff", glm::cos(glm::radians(12.5f)));
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
@@ -297,6 +298,8 @@ int main(int argc, char* argv[]) {
         objectShader.setMat4("projection", projectionTransform);
         objectShader.setMat4("view", viewTransform);
         objectShader.setVec3("eyePos", cameraPosition);
+        objectShader.setVec3("light.position", cameraPosition);
+        objectShader.setVec3("light.direction", gCamera->getForward());
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
