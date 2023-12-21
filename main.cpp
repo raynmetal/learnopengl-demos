@@ -202,7 +202,8 @@ int main(int argc, char* argv[]) {
     objectShader.setFloat("light.constant", 1.f);
     objectShader.setFloat("light.linear", .09f);
     objectShader.setFloat("light.quadratic", .032f);
-    objectShader.setFloat("light.cosCutoff", glm::cos(glm::radians(12.5f)));
+    objectShader.setFloat("light.cosCutoffInner", glm::cos(glm::radians(22.5f)));
+    objectShader.setFloat("light.cosCutoffOuter", glm::cos(glm::radians(35.f)));
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};

@@ -17,7 +17,8 @@ struct Light {
     float linear;
     float quadratic;
 
-    float cosCutoff;
+    float cosCutoffOuter;
+    float cosCutoffInner;
 };
 
 uniform vec3 eyePos;
@@ -42,36 +43,33 @@ void main() {
 
     //spotlight calculations
     float cosTheta = dot(incidentRay, lightDir);
+    float spotIntensity = clamp(
+        (cosTheta - light.cosCutoffOuter) / (light.cosCutoffInner - light.cosCutoffOuter),
+        0.0, 1.0
+    );
 
-    //Initialize phong model vectors
+    //Calculate intensity of ambient color
     vec3 ambient = txtrColor * light.ambient;
-    vec3 diffuse = vec3(0.0, 0.0, 0.0);
-    vec3 specular = vec3(0.0, 0.0, 0.0);
 
-    if(cosTheta > light.cosCutoff) {
-        //Calculate intensity of ambient color
-        //...
+    //Calculate intensity of diffuse colour
+    vec3 diffuse = (
+        (
+            max(dot(norm, -incidentRay), 0.0) 
+            * txtrColor
+        ) 
+        * light.diffuse
+    ) * spotIntensity;
 
-        //Calculate intensity of diffuse colour
-        diffuse = (
-            (
-                max(dot(norm, -incidentRay), 0.0) 
-                * txtrColor
-            ) 
-            * light.diffuse
-        );
-
-        //Calculate intensity of specular light
-        vec3 reflectionDir = incidentRay - 2 * dot(incidentRay, norm) * norm;
-        specular = (
-            (
-                pow(max(dot(reflectionDir, eyeDir), 0.0), 
-                    material.shine) 
-                * specColor
-            )
-            * light.specular
-        );
-    }
+    //Calculate intensity of specular light
+    vec3 reflectionDir = incidentRay - 2 * dot(incidentRay, norm) * norm;
+    vec3 specular = (
+        (
+            pow(max(dot(reflectionDir, eyeDir), 0.0), 
+                material.shine) 
+            * specColor
+        )
+        * light.specular
+    ) * spotIntensity;
 
     //attenuation related calculations
     float dist = length(light.position - FragPos);
