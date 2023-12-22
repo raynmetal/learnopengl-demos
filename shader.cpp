@@ -176,3 +176,22 @@ void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
         glm::value_ptr(value)
     );
 }
+
+void Shader::setLight(const std::string& name, const Light& light) const {
+    //basic light attributes
+    setInt(name + ".type", light.mType);
+    setVec3(name + ".position", light.mPosition);
+    setVec3(name + ".direction", light.mDirection);
+    setVec3(name + ".diffuse", light.mDiffuse);
+    setVec3(name + ".specular", light.mSpecular);
+    setVec3(name + ".ambient", light.mAmbient);
+
+    //attenuation related attributes
+    setFloat(name + ".constant", light.mConstant);
+    setFloat(name  + ".linear", light.mLinear);
+    setFloat(name + ".quadratic", light.mQuadratic);
+
+    //spotlight attributes
+    setFloat(name + ".cosCutoffInner", light.mCosCutoffInner);
+    setFloat(name + ".cosCutoffOuter", light.mCosCutoffOuter);
+}

@@ -14,6 +14,7 @@
 #include "shared_globals.hpp"
 #include "flycamera.hpp"
 #include "shader.hpp"
+#include "light.hpp"
 #include "texture.hpp"
 #include "utility.hpp"
 
@@ -195,15 +196,18 @@ int main(int argc, char* argv[]) {
     glm::vec3 lightAmbient {.2f, .2f, .2f};
     glm::vec3 lightDiffuse {.5f, .5f, .5f};
     glm::vec3 lightSpecular {1.f, 1.f, 1.f};
-    objectShader.setVec3("light.position", lightSourcePosition);
-    objectShader.setVec3("light.ambient", lightAmbient);
-    objectShader.setVec3("light.diffuse", lightDiffuse);
-    objectShader.setVec3("light.specular", lightSpecular);
-    objectShader.setFloat("light.constant", 1.f);
-    objectShader.setFloat("light.linear", .09f);
-    objectShader.setFloat("light.quadratic", .032f);
-    objectShader.setFloat("light.cosCutoffInner", glm::cos(glm::radians(22.5f)));
-    objectShader.setFloat("light.cosCutoffOuter", glm::cos(glm::radians(35.f)));
+    float lightInnerAngle {18.f};
+    float lightOuterAngle {20.f};
+    float lightLinear {.09f};
+    float lightQuadratic {.032f};
+    Light spotLight { 
+        makeSpotLight(
+            lightSourcePosition, glm::vec3(0.f), lightInnerAngle,
+            lightOuterAngle, lightDiffuse, lightSpecular,
+            lightAmbient, lightLinear, lightQuadratic
+        )
+    };
+    objectShader.setLight("lights[0]", spotLight);
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
@@ -299,8 +303,8 @@ int main(int argc, char* argv[]) {
         objectShader.setMat4("projection", projectionTransform);
         objectShader.setMat4("view", viewTransform);
         objectShader.setVec3("eyePos", cameraPosition);
-        objectShader.setVec3("light.position", cameraPosition);
-        objectShader.setVec3("light.direction", gCamera->getForward());
+        objectShader.setVec3("lights[0].position", cameraPosition);
+        objectShader.setVec3("lights[0].direction", gCamera->getForward());
         for(glm::vec3 position : cubePositions) {
             // The Model matrix transforms a single object's vertices
             // to its location, orientation, shear, and size, in the 
