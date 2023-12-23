@@ -7,7 +7,6 @@ struct Material {
 };
 
 struct Light {
-
     // 0 - directional
     // 1 - point
     // 2 - spot
@@ -29,7 +28,7 @@ struct Light {
     float cosCutoffOuter;
     float cosCutoffInner;
 };
-#define NR_LIGHTS 1
+#define NR_LIGHTS 6
 uniform Light lights[NR_LIGHTS];
 
 uniform vec3 eyePos;
@@ -42,6 +41,10 @@ in vec3 Normal;
 
 out vec4 outColor;
 
+/*
+Returns the fragment colour contribution from a particular light source, given
+a material's texture and specular colour at this point
+*/
 vec3 calculateLight(Light light, vec3 normal, vec3 eyeDir, vec3 txtrColor, vec3 specColor);
 
 void main() {
@@ -62,7 +65,9 @@ vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 sp
     //Vectors we'll reuse for various lighting calculations
     vec3 incidentRay = normalize(FragPos - light.position);
     vec3 lightDir = normalize(light.direction);
-    if(light.type == 0) { // directional lights are defined in terms of their direction alone
+
+    // Directional lights are defined in terms of their direction alone
+    if(light.type == 0) { 
         incidentRay = lightDir;
     }
 
@@ -89,7 +94,7 @@ vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 sp
         * light.specular
     );
 
-    //attenuation related calculations
+    // Attenuation related calculations
     float attenuation = 1.0;
     if(light.type == 1 || light.type == 2){ // point or spot lights
         float dist = length(light.position - FragPos);
@@ -98,7 +103,7 @@ vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 sp
             + light.quadratic * (dist*dist));
     }
 
-    //spotlight calculations
+    // Spotlight calculations
     float spotIntensity = 1.0;
     if(light.type == 2){ // spot lights only
         float cosTheta = dot(incidentRay, lightDir);
@@ -108,6 +113,6 @@ vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 sp
         );
     }
 
-    // fragment colour contribution from this lightsource
+    // Fragment colour contribution from this lightsource
     return (ambient + (diffuse + specular) * spotIntensity) * attenuation;
 }

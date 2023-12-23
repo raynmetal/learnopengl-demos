@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <cmath>
 
 #include <SDL2/SDL.h>
@@ -200,6 +201,8 @@ int main(int argc, char* argv[]) {
     float lightOuterAngle {20.f};
     float lightLinear {.09f};
     float lightQuadratic {.032f};
+
+    //Create one spotlight
     Light spotLight { 
         makeSpotLight(
             lightSourcePosition, glm::vec3(0.f), lightInnerAngle,
@@ -208,6 +211,28 @@ int main(int argc, char* argv[]) {
         )
     };
     objectShader.setLight("lights[0]", spotLight);
+    // Create 4 point lights around (0, 4, 2)
+    glm::vec3 pointLightPositions[4];
+    for(int i {0}; i < 4; ++i) {
+        pointLightPositions[i] = glm::vec3 (
+            5.f * sin(glm::radians(360.f/4.f * i)),
+            4.f,
+            2.f + 5.f * cos(glm::radians(360.f/4.f * i))
+        );
+        glm::vec3 pos { pointLightPositions[i] };
+        Light pointLight {
+            makePointLight(pos,
+                lightDiffuse, lightSpecular, lightAmbient,
+                lightLinear, lightQuadratic)
+        };
+        std::stringstream lUniform{};
+        lUniform << "lights[" << (1+i) << "]";
+        objectShader.setLight(lUniform.str(), pointLight);
+    }
+    Light directionalLight {
+        makeDirectionalLight(glm::vec3(2.f, -3.f, 2.f), lightDiffuse, lightSpecular, lightAmbient)
+    };
+    objectShader.setLight("lights[5]", directionalLight);
 
     //Set up material properties
     glm::vec3 materialSpecular {.2f, .2f, .2f};
@@ -236,6 +261,7 @@ int main(int argc, char* argv[]) {
         glm::vec3(2.f, 1.f, 7.f)
     };
 
+    //Timing related variables
     uint64_t lastFrame {SDL_GetTicks64()}; // time of last frame
 
     //Initialize camera (and view and projection matrices)
@@ -324,18 +350,20 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(0);
         }
 
-        //Draw light source
+        //Draw point light sources
         lightSourceShader.use();
         lightSourceShader.setMat4("projection", projectionTransform);
         lightSourceShader.setMat4("view", viewTransform);
-        glm::mat4 model {glm::mat4(1.f)};
-        model = glm::translate(model, lightSourcePosition);
-        model = glm::scale(model, glm::vec3(.3f));
-        lightSourceShader.setMat4("model", model);
-        //Draw
-        glBindVertexArray(lightSourceVao);
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        for(glm::vec3 position: pointLightPositions) {
+            glm::mat4 model {glm::mat4(1.f)};
+            model = glm::translate(model, position);
+            model = glm::scale(model, glm::vec3(.2f));
+            lightSourceShader.setMat4("model", model);
+            //Draw
+            glBindVertexArray(lightSourceVao);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
