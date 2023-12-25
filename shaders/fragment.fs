@@ -1,8 +1,11 @@
 #version 330 core
 
 struct Material {
-    sampler2D diffuse;
-    sampler2D specular;
+    sampler2D texture_diffuse1;
+    sampler2D texture_diffuse2;
+    sampler2D texture_diffuse3;
+    sampler2D texture_specular1;
+    sampler2D texture_specular2;
     int shine;
 };
 
@@ -50,8 +53,8 @@ vec3 calculateLight(Light light, vec3 normal, vec3 eyeDir, vec3 txtrColor, vec3 
 void main() {
     vec3 norm = normalize(Normal);
     vec3 eyeDir = normalize(eyePos - FragPos);
-    vec3 txtrColor = vec3(texture(material.diffuse, TextureCoord));
-    vec3 specColor = vec3(texture(material.specular, TextureCoord));
+    vec3 txtrColor = vec3(texture(material.texture_diffuse1, TextureCoord));
+    vec3 specColor = vec3(texture(material.texture_specular1, TextureCoord));
 
     vec3 result = vec3(0.0, 0.0, 0.0);
     for(int i = 0; i < NR_LIGHTS; i++) {

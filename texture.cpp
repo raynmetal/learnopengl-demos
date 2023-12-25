@@ -10,12 +10,16 @@
 
 void flip_surface(SDL_Surface* surface);
 
-Texture::Texture(const char* filename) {
-    bool success { loadTextureFromFile(filename) };
+Texture::Texture(const std::string& filepath, const std::string& type): type{type} {
+    bool success { loadTextureFromFile(filepath.c_str()) };
     if(!success) {
-        std::cout << "Could not load texture from " << filename << '!' << std::endl;
-    }
+        std::cout << "Could not load texture from " << filepath << '!' << std::endl;
+    } else std::cout << "Texture at " << filepath << " loaded successfully!" << std::endl;
 }
+
+Texture::Texture(GLuint textureID, const std::string& type):
+    mID{textureID}, type{type}
+{}
 
 Texture::~Texture() {
     freeTexture();
@@ -106,6 +110,7 @@ void Texture::bindTexture(bool bind) {
 }
 
 GLuint Texture::getTextureID() { return mID; }
+std::string Texture::getType() { return type; }
 
 void flip_surface(SDL_Surface* surface) {
     if(!surface) return;

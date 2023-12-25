@@ -13,6 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shared_globals.hpp"
+#include "mesh.hpp"
 #include "flycamera.hpp"
 #include "shader.hpp"
 #include "light.hpp"
@@ -52,22 +53,16 @@ int main(int argc, char* argv[]) {
     }
 
     //Load first texture into texture unit 0
+    std::vector<Texture> textures {
+        {0, "texture_diffuse"},
+        {0, "texture_specular"}
+    };
     glActiveTexture(GL_TEXTURE0);
-    Texture txtr1 { "media/container2.png" };
-    if(!txtr1.getTextureID()) {
-        std::cout << "Oops, our texture failed to load" << std::endl;
-        close(context);
-        return 1;
-    }
-    txtr1.bindTexture(true);
+    textures[0].loadTextureFromFile("media/container2.png");
+    textures[0].bindTexture(true);
     glActiveTexture(GL_TEXTURE1);
-    Texture txtr2 { "media/container2_specular.png" };
-    if(!txtr2.getTextureID()) {
-        std::cout << "Oops, our specular map texture failed to load" << std::endl;
-        close(context);
-        return 1;
-    }
-    txtr2.bindTexture(true);
+    textures[1].loadTextureFromFile("media/container2_specular.png");
+    textures[1].bindTexture(true);
 
     glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
     //Set up a polygon to draw; here, a triangle
@@ -239,12 +234,12 @@ int main(int argc, char* argv[]) {
     GLint materialShine {32};
     // --
     glActiveTexture(GL_TEXTURE0);
-    txtr1.bindTexture(true);
-    objectShader.setInt("material.diffuse", 0);
+    textures[0].bindTexture(true);
+    objectShader.setInt("material.texture_diffuse1", 0);
     // -- 
     glActiveTexture(GL_TEXTURE1);
-    txtr2.bindTexture(true);
-    objectShader.setInt("material.specular", 1);
+    textures[1].bindTexture(true);
+    objectShader.setInt("material.texture_specular1", 1);
     // --
     objectShader.setInt("material.shine", materialShine);
 

@@ -1,4 +1,4 @@
-SRCS := main.cpp shader.cpp texture.cpp utility.cpp flycamera.cpp light.cpp
+SRCS := main.cpp shader.cpp texture.cpp utility.cpp flycamera.cpp light.cpp mesh.cpp
 
 CC := g++
 
@@ -6,7 +6,7 @@ INCLUDE_PATHS := -ID:\MyDev\MinGW64\Include
 
 LIBRARY_PATHS := -LD:\MyDev\MinGW64\Lib
 
-LINKER_FLAGS := -lmingw32 -lSDL2main -lSDL2 -lOpenGL32 -lglew32 -lSDL2_image -lSDL2_image.dll
+LINKER_FLAGS := -lmingw32 -lSDL2main -lSDL2 -lOpenGL32 -lglew32 -lSDL2_image -lSDL2_image.dll -lassimp.dll
 
 COMPILER_FLAGS_DBG := -Wall
 
