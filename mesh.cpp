@@ -27,13 +27,16 @@ void Mesh::setupMesh(const Shader& shader) {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
 
         // Pointers to various interleaved vertex properties
+        shader.enableAttribArray("position");
         shader.setAttribPointerF("position", 3, sizeof(Vertex)/sizeof(float), offsetof(Vertex, position)/sizeof(float));
+        shader.enableAttribArray("normal");
         shader.setAttribPointerF("normal", 3, sizeof(Vertex)/sizeof(float), offsetof(Vertex, normal)/sizeof(float));
+        shader.enableAttribArray("textureCoord");
         shader.setAttribPointerF("textureCoord", 2, sizeof(Vertex)/sizeof(float), offsetof(Vertex, texCoords)/sizeof(float));
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader& shader) {
+void Mesh::Draw (Shader& shader) const {
     unsigned int diffuseN {1};
     unsigned int specularN {1};
 
@@ -41,7 +44,7 @@ void Mesh::Draw(Shader& shader) {
     for(unsigned int i{0}; i < textures.size(); ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
         std::string name { textures[i].getType() };
-        std::string number { std::to_string(name == "texture_diffuse"? diffuseN: specularN) };
+        std::string number { std::to_string(name == "texture_diffuse"? diffuseN++: specularN++) };
         shader.setInt(("material." + name + number).c_str(), i);
         textures[i].bindTexture();
     }

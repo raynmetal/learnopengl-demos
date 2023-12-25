@@ -16,11 +16,11 @@ public:
     void freeTexture();
 
     //Bind/unbind texture
-    void bindTexture(bool bind = true);
+    void bindTexture(bool bind = true) const;
 
     // Getter functions
-    GLuint getTextureID();
-    std::string getType();
+    GLuint getTextureID() const;
+    std::string getType() const;
 
 private:
     GLuint mID;

@@ -101,7 +101,7 @@ bool Texture::loadTextureFromFile(const char* filename) {
     return true;
 }
 
-void Texture::bindTexture(bool bind) {
+void Texture::bindTexture(bool bind) const {
     if(!bind || !mID){
         glBindTexture(GL_TEXTURE_2D, 0);
         return;
@@ -109,8 +109,8 @@ void Texture::bindTexture(bool bind) {
     glBindTexture(GL_TEXTURE_2D, mID);
 }
 
-GLuint Texture::getTextureID() { return mID; }
-std::string Texture::getType() { return type; }
+GLuint Texture::getTextureID() const { return mID; }
+std::string Texture::getType() const { return type; }
 
 void flip_surface(SDL_Surface* surface) {
     if(!surface) return;

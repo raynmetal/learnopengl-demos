@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    //Load first texture into texture unit 0
+    //Load textures into texture units 0 and 1
     std::vector<Texture> textures {
         {0, "texture_diffuse"},
         {0, "texture_specular"}
@@ -66,43 +66,53 @@ int main(int argc, char* argv[]) {
 
     glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
     //Set up a polygon to draw; here, a triangle
-    float vertices[] {
-        -.5f, .5f, .5f, // topleft front
-            1.f, 0.f, 0.f, //(red)
-            0.f, 1.f, // [sample] texture top left
-            -diag.x, diag.y, diag.z, // normal
-        .5f, .5f, .5f, // topright front
-            1.f, 1.f, 0.f, // (yellow)
-            1.f, 1.f, // texture top right
-            diag.x, diag.y, diag.z,
-        .5f, -.5f, .5f, // bottom right front
-            0.f, 1.f, 0.f, //(green)
-            1.f, 0.f, // texture bottom right
-            diag.x, -diag.y, diag.z,
-        -.5f, -.5f, .5f, // bottom  left front
-            0.f, 0.f, 1.f, //(blue)
-            0.f, 0.f, // texture bottom left
-            -diag.x, -diag.y, diag.z,
-        -.5f, -.5f, -.5f, // bottom left back
-            0.f, 0.f, 0.f,
-            0.f, 1.f,
-            -diag.x, -diag.y, -diag.z,
-        .5f, -.5f, -.5f, // bottom right back
-            0.f, 0.f, 0.f,
-            1.f, 1.f,
-            diag.x, -diag.y, -diag.z,
-        .5f, .5f, -.5f, // top right back
-            0.f, 0.f, 0.f,
-            1.f, 0.f,
-            diag.x, diag.y, -diag.z,
-        -.5f, .5f, -.5f, // top left back
-            0.f, 0.f, 0.f,
-            0.f, 0.f,
-            -diag.x, diag.y, -diag.z
+
+    std::vector<Vertex> vertices {
+        {
+            {-.5f, .5f, .5f}, // topleft front
+            {-diag.x, diag.y, diag.z}, // normal
+            {0.f, 1.f} // [sample] texture top left
+        },
+        {
+            {.5f, .5f, .5f}, // topright front
+            {diag.x, diag.y, diag.z},
+            {1.f, 1.f} // texture top right
+        },
+        {
+            {.5f, -.5f, .5f}, // bottom right front
+            {diag.x, -diag.y, diag.z},
+            {1.f, 0.f} // texture bottom right
+        },
+        {
+            {-.5f, -.5f, .5f}, // bottom  left front
+            {-diag.x, -diag.y, diag.z},
+            {0.f, 0.f} // texture bottom left
+        },
+        {
+            {-.5f, -.5f, -.5f}, // bottom left back
+            {-diag.x, -diag.y, -diag.z},
+            {0.f, 1.f}
+        },
+        {
+
+            {.5f, -.5f, -.5f}, // bottom right back
+            {diag.x, -diag.y, -diag.z},
+            {1.f, 1.f}
+        },
+        {
+            {.5f, .5f, -.5f}, // top right back
+            {diag.x, diag.y, -diag.z},
+            {1.f, 0.f}
+        },
+        {
+            {-.5f, .5f, -.5f}, // top left back
+            {-diag.x, diag.y, -diag.z},
+            {0.f, 0.f}
+        }
     };
 
     // Set up element buffer
-    GLuint elements[] {
+    std::vector<GLuint> elements {
         // front face
         0, 1, 2, 
         0, 2, 3,
@@ -123,63 +133,7 @@ int main(int argc, char* argv[]) {
         0, 4, 3
     };
 
-    // Set up our vertex buffer
-    GLuint vbo {};
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(
-            GL_ARRAY_BUFFER,  // the type of data we're sending
-            sizeof(vertices), // length of data being sent, in bytes
-            vertices, // the (CPU) memory being copied from (to the GPU memory)
-            GL_STATIC_DRAW // A hint as to how often this data will be overwritten
-        );
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Set up our element buffer
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, // type of data we're sending
-            sizeof(elements),  // length of data being sent, in bytes
-            elements, // the (CPU) memory being copied from
-            GL_STATIC_DRAW // A hint as to how often this data will be overwritten
-        );
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // Set up our vertex array object. A set of buffer and pointer
-    // bindings used for a particular set of draw calls
-    objectShader.use();
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-        //Enable vertex pointer (one for position, another for colour)
-        objectShader.enableAttribArray("position");
-        objectShader.enableAttribArray("color");
-        objectShader.enableAttribArray("textureCoord");
-        objectShader.enableAttribArray("normal");
-
-        //Specify which buffer to use for vertices, elements
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-
-        //Define the format of each vertex position, color, texture coordinates, and normals
-        objectShader.setAttribPointerF("position", 3, 11, 0);
-        objectShader.setAttribPointerF("color", 3, 11, 3);
-        objectShader.setAttribPointerF("textureCoord", 2, 11, 6);
-        objectShader.setAttribPointerF("normal", 3, 11, 8);
-    glBindVertexArray(0);
-
-    // Set up attribute pointers for the light source shader
-    lightSourceShader.use();
-    GLuint lightSourceVao {};
-    glGenVertexArrays(1, &lightSourceVao);
-    glBindVertexArray(lightSourceVao);
-        lightSourceShader.enableAttribArray("position");
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        lightSourceShader.setAttribPointerF("position", 3, 11, 0);
-    glBindVertexArray(0);
+    Mesh mesh {vertices, elements, textures, objectShader};
 
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
@@ -230,17 +184,7 @@ int main(int argc, char* argv[]) {
     objectShader.setLight("lights[5]", directionalLight);
 
     //Set up material properties
-    glm::vec3 materialSpecular {.2f, .2f, .2f};
     GLint materialShine {32};
-    // --
-    glActiveTexture(GL_TEXTURE0);
-    textures[0].bindTexture(true);
-    objectShader.setInt("material.texture_diffuse1", 0);
-    // -- 
-    glActiveTexture(GL_TEXTURE1);
-    textures[1].bindTexture(true);
-    objectShader.setInt("material.texture_specular1", 1);
-    // --
     objectShader.setInt("material.shine", materialShine);
 
     //Render an instance of the cube at the following position
@@ -340,24 +284,7 @@ int main(int argc, char* argv[]) {
             objectShader.setMat4("normalMat", normal);
 
             //Draw
-            glBindVertexArray(vao);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-            glBindVertexArray(0);
-        }
-
-        //Draw point light sources
-        lightSourceShader.use();
-        lightSourceShader.setMat4("projection", projectionTransform);
-        lightSourceShader.setMat4("view", viewTransform);
-        for(glm::vec3 position: pointLightPositions) {
-            glm::mat4 model {glm::mat4(1.f)};
-            model = glm::translate(model, position);
-            model = glm::scale(model, glm::vec3(.2f));
-            lightSourceShader.setMat4("model", model);
-            //Draw
-            glBindVertexArray(lightSourceVao);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-            glBindVertexArray(0);
+            mesh.Draw(objectShader);
         }
 
         //Update screen
@@ -367,10 +294,6 @@ int main(int argc, char* argv[]) {
     // de-allocate resources
     delete gCamera;
     gCamera = nullptr;
-    glDeleteVertexArrays(1, &vao);
-    glDeleteVertexArrays(1, &lightSourceVao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
 
     close(context);
     return 0;
