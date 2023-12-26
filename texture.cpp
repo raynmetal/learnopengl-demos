@@ -10,7 +10,7 @@
 
 void flip_surface(SDL_Surface* surface);
 
-Texture::Texture(const std::string& filepath, const std::string& type): type{type} {
+Texture::Texture(const std::string& filepath, const std::string& type): mID{0}, filepath{filepath}, type{type} {
     bool success { loadTextureFromFile(filepath.c_str()) };
     if(!success) {
         std::cout << "Could not load texture from " << filepath << '!' << std::endl;
@@ -18,8 +18,69 @@ Texture::Texture(const std::string& filepath, const std::string& type): type{typ
 }
 
 Texture::Texture(GLuint textureID, const std::string& type):
-    mID{textureID}, type{type}
+    mID{textureID}, filepath {""}, type{type} 
 {}
+
+Texture::Texture(): mID{0}, filepath {""}, type{""}
+{
+    std::cout << "empty texture initialized" << std::endl;
+};
+
+//Copy construction
+Texture::Texture(const Texture& other):
+    mID{other.mID},
+    filepath{other.filepath},
+    type{other.type}
+{}
+
+//Copy assignment
+Texture& Texture::operator=(const Texture& other) {
+    // Do nothing on self assignment
+    if(&other == this) return *this;
+
+    // Free currently held resource
+    freeTexture();
+
+    // Copy other's resource
+    mID = other.mID;
+    filepath = other.filepath;
+    type = other.type;
+
+    return *this;
+}
+
+//Move construction
+Texture::Texture(Texture&& other) noexcept:
+    mID{other.mID},
+    filepath{other.filepath},
+    type{other.type}
+{
+    // Prevent the other from destroying moved
+    // resource when it calls its destructor
+    other.mID = 0;
+}
+
+//Move assignment
+Texture& Texture::operator=(Texture&& other) noexcept
+{
+    // Do nothing on self assignment
+    if(&other == this) return *this;
+
+    // Free our currently held resource
+    freeTexture();
+
+    // Copy other
+    mID = other.mID;
+    filepath = other.filepath;
+    type = other.type;
+
+    // Prevent the other from destroying moved
+    // resource when it calls its destructor
+    other.mID = 0;
+
+    return *this;
+}
+
 
 Texture::~Texture() {
     freeTexture();
@@ -27,6 +88,8 @@ Texture::~Texture() {
 
 void Texture::freeTexture() { 
     if(!mID) return;
+
+    std::cout << "Texture " << mID << " is being freed" << std::endl;
     glDeleteTextures(1, &mID);
     mID = 0;
 }
@@ -54,10 +117,10 @@ bool Texture::loadTextureFromFile(const char* filename) {
     // Flip texture vertically before loading them into OpenGL
     // (OpenGL expects 0 as bottom, 1 as top, and SDL expects
     // the opposite)
-    flip_surface(pretexture);
+    // flip_surface(pretexture);
 
     // Move surface pixels to graphics card
-    GLuint texture;
+    GLuint texture {};
     glGenTextures(1, &texture);
     if(!texture) {
         SDL_FreeSurface(pretexture);

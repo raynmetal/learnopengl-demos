@@ -1,5 +1,5 @@
-#ifndef MESH_H
-#define MESH_H
+#ifndef ZOMESH_H
+#define ZOMESH_H
 
 #include <string>
 #include <vector>
@@ -22,10 +22,10 @@ class Mesh {
 public:
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
-    std::vector<Texture> textures;
+    std::vector<Texture*> textures;
 
-    Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const std::vector<Texture>& textures, const Shader& shader);
-    void Draw (Shader& shader) const;
+    Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const std::vector<Texture*>& textures, const Shader& shader);
+    void Draw (const Shader& shader) const;
 };
 
 #endif

@@ -6,7 +6,7 @@
 #include "texture.hpp"
 #include "mesh.hpp"
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const std::vector<Texture>& textures, const Shader& shader):
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const std::vector<Texture*>& textures, const Shader& shader):
     vertices{vertices}, indices{indices}, textures{textures}
 {
     setupMesh(shader);
@@ -36,17 +36,17 @@ void Mesh::setupMesh(const Shader& shader) {
     glBindVertexArray(0);
 }
 
-void Mesh::Draw (Shader& shader) const {
+void Mesh::Draw (const Shader& shader) const {
     unsigned int diffuseN {1};
     unsigned int specularN {1};
 
     // bind textures to texture units in GPU
     for(unsigned int i{0}; i < textures.size(); ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
-        std::string name { textures[i].getType() };
+        std::string name { textures[i]->getType() };
         std::string number { std::to_string(name == "texture_diffuse"? diffuseN++: specularN++) };
         shader.setInt(("material." + name + number).c_str(), i);
-        textures[i].bindTexture();
+        textures[i]->bindTexture();
     }
     glActiveTexture(GL_TEXTURE0);
 

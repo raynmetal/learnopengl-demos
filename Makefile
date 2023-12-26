@@ -1,4 +1,4 @@
-SRCS := main.cpp shader.cpp texture.cpp utility.cpp flycamera.cpp light.cpp mesh.cpp
+SRCS := main.cpp shader.cpp texture.cpp utility.cpp flycamera.cpp light.cpp mesh.cpp model.cpp
 
 CC := g++
 

@@ -1,5 +1,5 @@
-#ifndef SHAREDGLOBALS_H
-#define SHAREDGLOBALS_H
+#ifndef ZOSHAREDGLOBALS_H
+#define ZOSHAREDGLOBALS_H
 
 #include <SDL2/SDL.h>
 

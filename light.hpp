@@ -1,5 +1,5 @@
-#ifndef H_LIGHT
-#define H_LIGHT
+#ifndef ZOLIGHT_H
+#define ZOLIGHT_H
 
 #include <GL/glew.h>
 

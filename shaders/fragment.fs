@@ -4,9 +4,12 @@ struct Material {
     sampler2D texture_diffuse1;
     sampler2D texture_diffuse2;
     sampler2D texture_diffuse3;
+    sampler2D texture_diffuse4;
+
     sampler2D texture_specular1;
     sampler2D texture_specular2;
-    int shine;
+    sampler2D texture_specular3;
+    sampler2D texture_specular4;
 };
 
 struct Light {
@@ -31,6 +34,7 @@ struct Light {
     float cosCutoffOuter;
     float cosCutoffInner;
 };
+
 #define NR_LIGHTS 6
 uniform Light lights[NR_LIGHTS];
 
@@ -91,7 +95,7 @@ vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 sp
     vec3 specular = (
         (
             pow(max(dot(reflectionDir, eyeDir), 0.0), 
-                material.shine) 
+                32) 
             * specColor
         )
         * light.specular

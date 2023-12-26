@@ -13,12 +13,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "shared_globals.hpp"
-#include "mesh.hpp"
+#include "model.hpp"
 #include "flycamera.hpp"
 #include "shader.hpp"
 #include "light.hpp"
-#include "texture.hpp"
-#include "utility.hpp"
 
 //Initialize camera variables
 bool gWireframeMode { false };
@@ -45,101 +43,21 @@ int main(int argc, char* argv[]) {
 
     //Load shader program
     Shader objectShader {"shaders/vertex.vs", "shaders/fragment.fs"};
-    Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
-    if(!objectShader.getBuildSuccess() || !lightSourceShader.getBuildSuccess()) {
+    // Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+    if(!objectShader.getBuildSuccess() /*|| !lightSourceShader.getBuildSuccess()*/) {
         std::cout << "Oops, one of our shaders failed to load" << std::endl;
         close(context);
         return 1;
     }
-
-    //Load textures into texture units 0 and 1
-    std::vector<Texture> textures {
-        {0, "texture_diffuse"},
-        {0, "texture_specular"}
-    };
-    glActiveTexture(GL_TEXTURE0);
-    textures[0].loadTextureFromFile("media/container2.png");
-    textures[0].bindTexture(true);
-    glActiveTexture(GL_TEXTURE1);
-    textures[1].loadTextureFromFile("media/container2_specular.png");
-    textures[1].bindTexture(true);
-
-    glm::vec3 diag {glm::normalize(glm::vec3(1.f,1.f,1.f))};
-    //Set up a polygon to draw; here, a triangle
-
-    std::vector<Vertex> vertices {
-        {
-            {-.5f, .5f, .5f}, // topleft front
-            {-diag.x, diag.y, diag.z}, // normal
-            {0.f, 1.f} // [sample] texture top left
-        },
-        {
-            {.5f, .5f, .5f}, // topright front
-            {diag.x, diag.y, diag.z},
-            {1.f, 1.f} // texture top right
-        },
-        {
-            {.5f, -.5f, .5f}, // bottom right front
-            {diag.x, -diag.y, diag.z},
-            {1.f, 0.f} // texture bottom right
-        },
-        {
-            {-.5f, -.5f, .5f}, // bottom  left front
-            {-diag.x, -diag.y, diag.z},
-            {0.f, 0.f} // texture bottom left
-        },
-        {
-            {-.5f, -.5f, -.5f}, // bottom left back
-            {-diag.x, -diag.y, -diag.z},
-            {0.f, 1.f}
-        },
-        {
-
-            {.5f, -.5f, -.5f}, // bottom right back
-            {diag.x, -diag.y, -diag.z},
-            {1.f, 1.f}
-        },
-        {
-            {.5f, .5f, -.5f}, // top right back
-            {diag.x, diag.y, -diag.z},
-            {1.f, 0.f}
-        },
-        {
-            {-.5f, .5f, -.5f}, // top left back
-            {-diag.x, diag.y, -diag.z},
-            {0.f, 0.f}
-        }
-    };
-
-    // Set up element buffer
-    std::vector<GLuint> elements {
-        // front face
-        0, 1, 2, 
-        0, 2, 3,
-        // bottom face
-        2, 3, 4,
-        2, 4, 5,
-        //back face
-        4, 5, 6,
-        4, 6, 7,
-        //top face
-        6, 7, 0,
-        6, 0, 1,
-        // right face
-        6, 1, 2,
-        6, 2, 5,
-        // left face
-        0, 7, 4,
-        0, 4, 3
-    };
-
-    Mesh mesh {vertices, elements, textures, objectShader};
 
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
 
     //Use the shader we loaded as our shader program
     objectShader.use();
+
+    //Load our model
+    Model backpack {"media/backpack.obj", objectShader};
 
     //Set up light source properties
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
@@ -190,14 +108,6 @@ int main(int argc, char* argv[]) {
     //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
         glm::vec3(0.f, 0.f, -2.f),
-        glm::vec3(1.f, 1.f, 1.f),
-        glm::vec3(-4.f, -2.f, -3.f),
-        glm::vec3(-7.f, .3f, .5f),
-        glm::vec3(2.f, -3.f, 4.f),
-        glm::vec3(4.f, 3.f, -2.f),
-        glm::vec3(0.f, -6.f, 0.f),
-        glm::vec3(-1.f, -2.f, -14.f),
-        glm::vec3(2.f, 1.f, 7.f)
     };
 
     //Timing related variables
@@ -284,7 +194,7 @@ int main(int argc, char* argv[]) {
             objectShader.setMat4("normalMat", normal);
 
             //Draw
-            mesh.Draw(objectShader);
+            backpack.Draw(objectShader);
         }
 
         //Update screen

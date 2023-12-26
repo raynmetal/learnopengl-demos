@@ -9,6 +9,18 @@ class Texture {
 public:
     Texture(const std::string& filepath, const std::string& type);
     Texture(GLuint textureID, const std::string& type);
+    Texture();
+
+    //Copy construction
+    Texture(const Texture& other);
+    //Copy assignment
+    Texture& operator=(const Texture& other);
+
+    //Move construction
+    Texture(Texture&& other) noexcept;
+    //Move assignment
+    Texture& operator=(Texture&& other) noexcept;
+
     ~Texture();
 
     // Basic alloc and dealloc functions
@@ -24,6 +36,7 @@ public:
 
 private:
     GLuint mID;
+    std::string filepath;
     std::string type;
 };
 

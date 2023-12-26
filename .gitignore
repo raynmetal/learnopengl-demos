@@ -10,3 +10,7 @@
 #Media files
 /**/*.png
 /**/*.jpg
+/**/*.fbx
+/**/*.obj
+/**/*.mtl
+/**/*.txt

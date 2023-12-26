@@ -1,5 +1,5 @@
-#ifndef FLYCAM_H
-#define FLYCAM_H
+#ifndef ZOFLYCAM_H
+#define ZOFLYCAM_H
 
 #include <SDL2/SDL.h>
 
