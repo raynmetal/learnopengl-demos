@@ -87,8 +87,8 @@ glm::mat4 FlyCamera::getProjectionMatrix(){
         glm::perspective(
             static_cast<float>(glm::radians(mFOV)),
             static_cast<float>(gWindowWidth)/static_cast<float>(gWindowHeight),
-            0.1f,
-            100.f
+            1.f,
+            50.f
         )
     };
     return projectionMatrix;

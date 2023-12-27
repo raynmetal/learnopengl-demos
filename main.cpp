@@ -59,6 +59,7 @@ int main(int argc, char* argv[]) {
     //Load our model
     Model backpack {"media/backpack.obj", objectShader};
 
+
     //Set up light source properties
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
     glm::vec3 lightAmbient {.2f, .2f, .2f};
@@ -104,6 +105,10 @@ int main(int argc, char* argv[]) {
     //Set up material properties
     GLint materialShine {32};
     objectShader.setInt("material.shine", materialShine);
+
+    //Near and far plane depths
+    objectShader.setFloat("nearDepth", 1.f);
+    objectShader.setFloat("farDepth", 50.f);
 
     //Render an instance of the cube at the following position
     glm::vec3 cubePositions[] {
@@ -238,6 +243,12 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
 
     // Enable OpenGL depth testing
     glEnable(GL_DEPTH_TEST);
+
+    //Determines the type of depth function used; GL_LESS
+    //is the default one. Fragments are discarded if their
+    //depth is greater than the presently stored depth for
+    //a given fragment
+    glDepthFunc(GL_LESS);
 
     return true;
 }
