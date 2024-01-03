@@ -41,11 +41,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    //Load shader program
-    Shader objectShader {"shaders/vertex.vs", "shaders/fragment.fs"};
-    // Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+    //Load object shader program
+    Shader objectShader {"shaders/vertex.vs", "shaders/object_fragment.fs"};
     if(!objectShader.getBuildSuccess() /*|| !lightSourceShader.getBuildSuccess()*/) {
-        std::cout << "Oops, one of our shaders failed to load" << std::endl;
+        std::cout << "Oops, object shader failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
+
+    // Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+
+    //Load outline shader program
+    Shader outlineShader {"shaders/vertex.vs", "shaders/outline_fragment.fs"};
+    if(!outlineShader.getBuildSuccess()) {
+        std::cout << "Oops, outline shader failed to load" << std::endl;
         close(context);
         return 1;
     }
@@ -53,12 +62,18 @@ int main(int argc, char* argv[]) {
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
 
-    //Use the shader we loaded as our shader program
-    objectShader.use();
+    //Set outline colour for outline shader
+    outlineShader.use();
+    outlineShader.setVec3("outlineColor", glm::vec3(0.04, 0.28, 0.26));
 
+    //Use the object shader we loaded as our current shader program
+    objectShader.use();
     //Load our model
     Model backpack {"media/backpack.obj", objectShader};
 
+    // TODO: fix this later. There has to be a better way to share model
+    // data between shaders.
+    Model backpackOutline {"media/backpack.obj", outlineShader};
 
     //Set up light source properties
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
@@ -175,10 +190,19 @@ int main(int argc, char* argv[]) {
         glm::mat4 viewTransform {gCamera->getViewMatrix()};
         cameraPosition = gCamera->getPosition();
 
-        //Clear colour and depth buffers before each render
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        //Clear colour, stencil, and depth buffers before each render
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         //Draw objects
+        glStencilFunc(
+            //stencil test succeeds for all fragments
+            //this is called on
+            GL_ALWAYS, 
+            1/*ref*/, 
+            0xFF/*comparison mask*/
+        );
+        glStencilMask(0xFF); //overwriting of stencil buffer is allowed
         objectShader.use();
         objectShader.setMat4("projection", projectionTransform);
         objectShader.setMat4("view", viewTransform);
@@ -190,17 +214,40 @@ int main(int argc, char* argv[]) {
             // to its location, orientation, shear, and size, in the 
             // world space
             float angle {20.f * position.z};
-
             glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
             glm::mat4 normal { glm::transpose(glm::inverse(model)) };
-
             objectShader.setMat4("model", model);
             objectShader.setMat4("normalMat", normal);
-
             //Draw
             backpack.Draw(objectShader);
         }
+
+        //Draw object outline
+        glDisable(GL_DEPTH_TEST);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(GL_FALSE); // don't overwrite stencil buffer
+        outlineShader.use();
+        outlineShader.setMat4("projection", projectionTransform);
+        outlineShader.setMat4("view", viewTransform);
+        for(glm::vec3 position : cubePositions) {
+            // The Model matrix transforms a single object's vertices
+            // to its location, orientation, shear, and size, in the 
+            // world space
+            float angle {20.f * position.z};
+
+            // Build model matrix, send to shader
+            glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
+            model = glm::scale(model, glm::vec3(1.1f));
+            outlineShader.setMat4("model", model);
+
+            //Draw
+            backpack.Draw(outlineShader);
+        }
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glEnable(GL_DEPTH_TEST);
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
@@ -243,6 +290,12 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
 
     // Enable OpenGL depth testing
     glEnable(GL_DEPTH_TEST);
+
+    // Enable OpenGL stencil testing
+    glEnable(GL_STENCIL_TEST);
+    // Keep stencil value if stencil fails, or if stencil passes but depth fails
+    // Replace if stencil and depth both pass
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     //Determines the type of depth function used; GL_LESS
     //is the default one. Fragments are discarded if their

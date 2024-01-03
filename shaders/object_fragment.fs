@@ -57,22 +57,22 @@ a material's texture and specular colour at this point
 vec3 calculateLight(Light light, vec3 normal, vec3 eyeDir, vec3 txtrColor, vec3 specColor);
 
 void main() {
-    // vec3 norm = normalize(Normal);
-    // vec3 eyeDir = normalize(eyePos - FragPos);
-    // vec3 txtrColor = vec3(texture(material.texture_diffuse1, TextureCoord));
-    // vec3 specColor = vec3(texture(material.texture_specular1, TextureCoord));
+    vec3 norm = normalize(Normal);
+    vec3 eyeDir = normalize(eyePos - FragPos);
+    vec3 txtrColor = vec3(texture(material.texture_diffuse1, TextureCoord));
+    vec3 specColor = vec3(texture(material.texture_specular1, TextureCoord));
 
-    // vec3 result = vec3(0.0, 0.0, 0.0);
-    // for(int i = 0; i < NR_LIGHTS; i++) {
-    //     result += calculateLight(lights[i], norm, eyeDir, txtrColor, specColor);
-    // }
+    vec3 result = vec3(0.0, 0.0, 0.0);
+    for(int i = 0; i < NR_LIGHTS; i++) {
+        result += calculateLight(lights[i], norm, eyeDir, txtrColor, specColor);
+    }
 
-    // outColor = vec4(result, 1.0);
+    outColor = vec4(result, 1.0);
 
     //Convert depth value to pre-NDC equivalent
-    float ndc = gl_FragCoord.z*2.0 - 1.0;
-    float linearDepth = (2.0*nearDepth*farDepth)/(farDepth+nearDepth - ndc*(farDepth - nearDepth));
-    outColor = vec4(vec3(linearDepth/farDepth), 1.0);
+    // float ndc = gl_FragCoord.z*2.0 - 1.0;
+    // float linearDepth = (2.0*nearDepth*farDepth)/(farDepth+nearDepth - ndc*(farDepth - nearDepth));
+    // outColor = vec4(vec3(linearDepth/farDepth), 1.0);
 }
 
 vec3 calculateLight(Light light, vec3 norm, vec3 eyeDir, vec3 txtrColor, vec3 specColor) {
