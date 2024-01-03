@@ -97,7 +97,7 @@ void Texture::freeTexture() {
 bool Texture::loadTextureFromFile(const char* filename) {
     freeTexture();
 
-    // Load image from file into an SDL surface
+    // Load image from file into a convenient SDL surface, per the image itself
     SDL_Surface* texture_image { IMG_Load(filename) };
     if(!texture_image) {
         std::cout << "Could not load texture!\n" 
@@ -105,8 +105,8 @@ bool Texture::loadTextureFromFile(const char* filename) {
         return false;
     }
 
-    //Convert image from RGBA -> RGB
-    SDL_Surface* pretexture = SDL_ConvertSurfaceFormat(texture_image, SDL_PIXELFORMAT_RGB24, 0 );
+    //Convert image from its present format -> RGBA
+    SDL_Surface* pretexture = SDL_ConvertSurfaceFormat(texture_image, SDL_PIXELFORMAT_RGBA32, 0);
     SDL_FreeSurface(texture_image);
     texture_image = nullptr;
     if(!pretexture) {
@@ -127,9 +127,9 @@ bool Texture::loadTextureFromFile(const char* filename) {
         return false;
     }
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
         pretexture->w, pretexture->h,
-        0, GL_RGB, GL_UNSIGNED_BYTE, 
+        0, GL_RGBA, GL_UNSIGNED_BYTE, 
         reinterpret_cast<void*>(pretexture->pixels)
     );
     SDL_FreeSurface(pretexture);
