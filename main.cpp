@@ -343,6 +343,11 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     // value, and the color in the color buffer with (1 - the alpha value)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    //Enables back culling. faces defined by vertices read clockwise
+    //are discarded, while faces with vertices read anticlockwise are
+    //kept
+    glEnable(GL_CULL_FACE);
+
     return true;
 }
 
