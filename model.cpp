@@ -40,7 +40,7 @@ void Model::loadModel(const std::string& path, const Shader& shader) {
                 // upside down. OpenGL expects (0, 0) to correspond
                 // to an image's bottom left, but images are 
                 // usually read from top left -> bottom right
-                // | aiProcess_FlipUVs 
+                | aiProcess_FlipUVs 
             )
         )
     };

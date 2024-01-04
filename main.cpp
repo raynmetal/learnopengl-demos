@@ -68,19 +68,19 @@ int main(int argc, char* argv[]) {
         std::vector<GLfloat> quadVertices {
             //bottom left
             -0.5f, 0.f, 0.f, //position (xyz)
-                0.f, 1.f, // texture coordinate (st)
+                0.f, 0.f, // texture coordinate (st)
                 0.f, 0.f, 1.f, //normal (xyz)
             //bottom right
             0.5f, 0.f, 0.f,
-                1.f, 1.f,
+                1.f, 0.f,
                 0.f, 0.f, 1.f,
             //top right
             0.5f, 1.f, 0.f,
-                1.f, 0.f,
+                1.f, 1.f,
                 0.f, 0.f, 1.f,
             //top left
             -0.5f, 1.f, 0.f,
-                0.f, 0.f,
+                0.f, 1.f,
                 0.f, 0.f, 1.f
         };
         std::vector<GLuint> quadElements {

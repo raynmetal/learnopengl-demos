@@ -60,6 +60,7 @@ void main() {
     vec3 norm = normalize(Normal);
     vec3 eyeDir = normalize(eyePos - FragPos);
     vec4 txtrColor = texture(material.texture_diffuse1, TextureCoord);
+    if(txtrColor.a < 0.1) discard;
     vec3 specColor = vec3(texture(material.texture_specular1, TextureCoord));
 
     vec3 result = vec3(0.0, 0.0, 0.0);

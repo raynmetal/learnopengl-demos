@@ -117,7 +117,7 @@ bool Texture::loadTextureFromFile(const char* filename) {
     // Flip texture vertically before loading them into OpenGL
     // (OpenGL expects 0 as bottom, 1 as top, and SDL expects
     // the opposite)
-    // flip_surface(pretexture);
+    flip_surface(pretexture);
 
     // Move surface pixels to graphics card
     GLuint texture {};
