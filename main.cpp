@@ -336,6 +336,13 @@ bool init(SDL_Window*& window, SDL_GLContext& context) {
     //a given fragment
     glDepthFunc(GL_LESS);
 
+    // Enables OpenGL blending of texture alpha values
+    glEnable(GL_BLEND);
+
+    // A blend function that multiplies this fragment's color components with its alpha 
+    // value, and the color in the color buffer with (1 - the alpha value)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     return true;
 }
 
