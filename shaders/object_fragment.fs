@@ -64,10 +64,10 @@ void main() {
 
     vec3 result = vec3(0.0, 0.0, 0.0);
     for(int i = 0; i < NR_LIGHTS; i++) {
-        result += calculateLight(lights[i], norm, eyeDir, vec3(txtrColor), specColor);
+        result += calculateLight(lights[i], norm, eyeDir, txtrColor.rgb, specColor);
     }
 
-    outColor = vec4(result, txtrColor.w);
+    outColor = vec4(result, txtrColor.a);
     //Convert depth value to pre-NDC equivalent
     // float ndc = gl_FragCoord.z*2.0 - 1.0;
     // float linearDepth = (2.0*nearDepth*farDepth)/(farDepth+nearDepth - ndc*(farDepth - nearDepth));

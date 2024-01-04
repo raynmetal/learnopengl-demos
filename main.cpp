@@ -14,6 +14,7 @@
 
 #include "shared_globals.hpp"
 #include "model.hpp"
+#include "texture.hpp"
 #include "flycamera.hpp"
 #include "shader.hpp"
 #include "light.hpp"
@@ -58,7 +59,66 @@ int main(int argc, char* argv[]) {
     //Use the object shader we loaded as our current shader program
     objectShader.use();
     //Load our model
-    Model backpack {"media/backpack.obj", objectShader};
+    // Model backpack {"media/backpack.obj", objectShader};
+
+    //Set up a VAO for a single upright square
+    GLuint quadVAO {};
+    glGenVertexArrays(1, &quadVAO);
+    glBindVertexArray(quadVAO);
+        std::vector<GLfloat> quadVertices {
+            //bottom left
+            -0.5f, 0.f, 0.f, //position (xyz)
+                0.f, 1.f, // texture coordinate (st)
+                0.f, 0.f, 1.f, //normal (xyz)
+            //bottom right
+            0.5f, 0.f, 0.f,
+                1.f, 1.f,
+                0.f, 0.f, 1.f,
+            //top right
+            0.5f, 1.f, 0.f,
+                1.f, 0.f,
+                0.f, 0.f, 1.f,
+            //top left
+            -0.5f, 1.f, 0.f,
+                0.f, 0.f,
+                0.f, 0.f, 1.f
+        };
+        std::vector<GLuint> quadElements {
+            0, 1, 2, // bottom right triangle
+            0, 2, 3 // top left triangle
+        };
+
+        // Send vertex buffer data
+        GLuint quadVBO {};
+        glGenBuffers(1, &quadVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(
+            GL_ARRAY_BUFFER, 
+            quadVertices.size() * sizeof(float),
+            &quadVertices[0],
+            GL_STATIC_DRAW
+        );
+        GLuint quadEBO {};
+        glGenBuffers(1, &quadEBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            quadElements.size() * sizeof(GLuint),
+            &quadElements[0],
+            GL_STATIC_DRAW
+        );
+
+        objectShader.enableAttribArray("position");
+        objectShader.setAttribPointerF("position", 3, 8, 0);
+
+        objectShader.enableAttribArray("textureCoord");
+        objectShader.setAttribPointerF("textureCoord", 2, 8, 3);
+
+        objectShader.enableAttribArray("normal");
+        objectShader.setAttribPointerF("normal", 3, 8, 5);
+    glBindVertexArray(0);
+
+    Texture grassTexture {"media/grass.png", "texture_diffuse"};
 
     //Set up light source properties
     glm::vec3 lightSourcePosition {2.f, 2.f, 2.f};
@@ -110,9 +170,17 @@ int main(int argc, char* argv[]) {
     objectShader.setFloat("nearDepth", 1.f);
     objectShader.setFloat("farDepth", 50.f);
 
-    //Render an instance of the cube at the following position
-    glm::vec3 cubePositions[] {
-        glm::vec3(0.f, 0.f, -2.f),
+    // //Render an instance of the cube at the following position
+    // glm::vec3 cubePositions[] {
+    //     glm::vec3(0.f, 0.f, -2.f),
+    // };
+
+    std::vector<glm::vec3> vegetationPositions {
+        {-1.5f, 0.f, -.48f},
+        {1.5f, 0.f, .51f},
+        {0.f, 0.f, .7f},
+        {-.3f, 0.f, -2.3f},
+        {.5f, 0.f, -.6f}
     };
 
     //Timing related variables
@@ -178,26 +246,47 @@ int main(int argc, char* argv[]) {
         //Clear colour, stencil, and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        //Draw objects
+        // Draw vegetation
         objectShader.use();
         objectShader.setMat4("projection", projectionTransform);
         objectShader.setMat4("view", viewTransform);
         objectShader.setVec3("eyePos", cameraPosition);
         objectShader.setVec3("lights[0].position", cameraPosition);
         objectShader.setVec3("lights[0].direction", gCamera->getForward());
-        for(glm::vec3 position : cubePositions) {
-            // The Model matrix transforms a single object's vertices
-            // to its location, orientation, shear, and size, in the 
-            // world space
-            float angle {20.f * position.z};
+        glActiveTexture(GL_TEXTURE0);
+        objectShader.setInt("material.texture_diffuse1", 0);
+        grassTexture.bindTexture(true);
+        for(glm::vec3 position : vegetationPositions) {
             glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
             glm::mat4 normal { glm::transpose(glm::inverse(model)) };
             objectShader.setMat4("model", model);
             objectShader.setMat4("normalMat", normal);
-            //Draw
-            backpack.Draw(objectShader);
+            glBindVertexArray(quadVAO);
+                glDrawElements(GL_TRIANGLES, quadElements.size(), GL_UNSIGNED_INT, static_cast<void*>(0));
+            glBindVertexArray(0);
         }
+        grassTexture.bindTexture(false);
+
+        // //Draw objects
+        // objectShader.use();
+        // objectShader.setMat4("projection", projectionTransform);
+        // objectShader.setMat4("view", viewTransform);
+        // objectShader.setVec3("eyePos", cameraPosition);
+        // objectShader.setVec3("lights[0].position", cameraPosition);
+        // objectShader.setVec3("lights[0].direction", gCamera->getForward());
+        // for(glm::vec3 position : cubePositions) {
+        //     // The Model matrix transforms a single object's vertices
+        //     // to its location, orientation, shear, and size, in the 
+        //     // world space
+        //     float angle {20.f * position.z};
+        //     glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
+        //     model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
+        //     glm::mat4 normal { glm::transpose(glm::inverse(model)) };
+        //     objectShader.setMat4("model", model);
+        //     objectShader.setMat4("normalMat", normal);
+        //     //Draw
+        //     backpack.Draw(objectShader);
+        // }
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
