@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     //Use the object shader we loaded as our current shader program
     objectShader.use();
     //Load our model
-    // Model backpack {"media/backpack.obj", objectShader};
+    Model backpack {"media/backpack.obj", objectShader};
 
     //Set up a VAO for a single upright square
     GLuint quadVAO {};
@@ -170,10 +170,10 @@ int main(int argc, char* argv[]) {
     objectShader.setFloat("nearDepth", 1.f);
     objectShader.setFloat("farDepth", 50.f);
 
-    // //Render an instance of the cube at the following position
-    // glm::vec3 cubePositions[] {
-    //     glm::vec3(0.f, 0.f, -2.f),
-    // };
+    //Render an instance of the cube at the following position
+    glm::vec3 backpackPositions[] {
+        glm::vec3(0.f, 0.f, -2.f),
+    };
 
     std::vector<glm::vec3> vegetationPositions {
         {-1.5f, 0.f, -.48f},
@@ -246,13 +246,16 @@ int main(int argc, char* argv[]) {
         //Clear colour, stencil, and depth buffers before each render
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        // Draw vegetation
+        // Recalculate and send projection and view matrices
+        // to our object shader
         objectShader.use();
         objectShader.setMat4("projection", projectionTransform);
         objectShader.setMat4("view", viewTransform);
         objectShader.setVec3("eyePos", cameraPosition);
         objectShader.setVec3("lights[0].position", cameraPosition);
         objectShader.setVec3("lights[0].direction", gCamera->getForward());
+
+        //Draw grass
         glActiveTexture(GL_TEXTURE0);
         objectShader.setInt("material.texture_diffuse1", 0);
         grassTexture.bindTexture(true);
@@ -267,26 +270,20 @@ int main(int argc, char* argv[]) {
         }
         grassTexture.bindTexture(false);
 
-        // //Draw objects
-        // objectShader.use();
-        // objectShader.setMat4("projection", projectionTransform);
-        // objectShader.setMat4("view", viewTransform);
-        // objectShader.setVec3("eyePos", cameraPosition);
-        // objectShader.setVec3("lights[0].position", cameraPosition);
-        // objectShader.setVec3("lights[0].direction", gCamera->getForward());
-        // for(glm::vec3 position : cubePositions) {
-        //     // The Model matrix transforms a single object's vertices
-        //     // to its location, orientation, shear, and size, in the 
-        //     // world space
-        //     float angle {20.f * position.z};
-        //     glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
-        //     model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
-        //     glm::mat4 normal { glm::transpose(glm::inverse(model)) };
-        //     objectShader.setMat4("model", model);
-        //     objectShader.setMat4("normalMat", normal);
-        //     //Draw
-        //     backpack.Draw(objectShader);
-        // }
+        //Draw backpacks
+        for(glm::vec3 position : backpackPositions) {
+            // The Model matrix transforms a single object's vertices
+            // to its location, orientation, shear, and size, in the 
+            // world space
+            float angle {20.f * position.z};
+            glm::mat4 model { glm::translate(glm::mat4(1.f), position) };
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.f, .3f, .5f));
+            glm::mat4 normal { glm::transpose(glm::inverse(model)) };
+            objectShader.setMat4("model", model);
+            objectShader.setMat4("normalMat", normal);
+            //Draw
+            backpack.Draw(objectShader);
+        }
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
