@@ -44,14 +44,51 @@ int main(int argc, char* argv[]) {
 
     //Load object shader program
     Shader objectShader {"shaders/vertex.vs", "shaders/object_fragment.fs"};
-    if(!objectShader.getBuildSuccess() /*|| !lightSourceShader.getBuildSuccess()*/) {
+    if(!objectShader.getBuildSuccess()) {
         std::cout << "Oops, object shader failed to load" << std::endl;
+        close(context);
+        return 1;
+    }
+
+    Shader simpleShader{"shaders/simple_vertex.vs", "shaders/simple_fragment.fs"};
+    if(!simpleShader.getBuildSuccess()) {
+        std::cout << "Oops, simple shader failed to load" << std::endl;
         close(context);
         return 1;
     }
 
     // Load light source shader program
     // Shader lightSourceShader {"shaders/vertex.vs", "shaders/lightsource_fragment.fs"};
+
+    // Set up a framebuffer
+    GLuint framebuffer{};
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+        //Attach a texture image to the framebuffer
+        GLuint textureColorBuffer {};
+        glGenTextures(1, &textureColorBuffer);
+        glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 600, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+        // Create and attach a renderbuffer object to the fbo
+        GLuint rbo {};
+        glGenRenderbuffers(1, &rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+        // Check for framebuffer completeness
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
+    // unbind framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     //Set clear colour to a dark green-blueish colour
     glClearColor(.2f, .3f, .3f, 1.f);
@@ -117,6 +154,59 @@ int main(int argc, char* argv[]) {
         objectShader.enableAttribArray("normal");
         objectShader.setAttribPointerF("normal", 3, 8, 5);
     glBindVertexArray(0);
+
+    simpleShader.use();
+    //Set up a VAO for a single upright square
+    GLuint simpleVAO {};
+    glGenVertexArrays(1, &simpleVAO);
+    glBindVertexArray(simpleVAO);
+        std::vector<GLfloat> simpleVertices {
+            //bottom left
+            -1.f, -1.f,
+                0.f, 0.f, // texture coordinate (st)
+            //bottom right
+            1.f, -1.f,
+                1.f, 0.f,
+            //top right
+            1.f, 1.f,
+                1.f, 1.f,
+            //top left
+            -1.f, 1.f,
+                0.f, 1.f
+        };
+        std::vector<GLuint> simpleElements {
+            0, 1, 2, // bottom right triangle
+            0, 2, 3 // top left triangle
+        };
+
+        // Send vertex buffer data
+        GLuint simpleVBO {};
+        glGenBuffers(1, &simpleVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, simpleVBO);
+        glBufferData(
+            GL_ARRAY_BUFFER, 
+            simpleVertices.size() * sizeof(float),
+            &simpleVertices[0],
+            GL_STATIC_DRAW
+        );
+        GLuint simpleEBO{};
+        glGenBuffers(1, &simpleEBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, simpleEBO);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            simpleElements.size() * sizeof(GLuint),
+            &simpleElements[0],
+            GL_STATIC_DRAW
+        );
+
+        simpleShader.enableAttribArray("position");
+        simpleShader.setAttribPointerF("position", 2, 4, 0);
+
+        simpleShader.enableAttribArray("textureCoord");
+        simpleShader.setAttribPointerF("textureCoord", 2, 4, 2);
+    glBindVertexArray(0);
+
+    objectShader.use();
 
     Texture grassTexture {"media/grass.png", "texture_diffuse"};
 
@@ -223,7 +313,15 @@ int main(int argc, char* argv[]) {
                     break;
                 }
             }
-            else processInput(&event);
+
+            else if(
+                event.type == SDL_KEYUP
+                && event.key.keysym.sym == SDLK_9
+            )
+                gWireframeMode = !gWireframeMode;
+
+            else 
+                processInput(&event);
 
             if(gWireframeMode)
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -243,8 +341,13 @@ int main(int argc, char* argv[]) {
         glm::mat4 viewTransform {gCamera->getViewMatrix()};
         cameraPosition = gCamera->getPosition();
 
-        //Clear colour, stencil, and depth buffers before each render
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        //Render the scene to the framebuffer first
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glClearColor(.1f, .1f, .1f, 1.f);
+
+        //Clear colour and depth buffers before each render
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
         // Recalculate and send projection and view matrices
         // to our object shader
@@ -284,6 +387,21 @@ int main(int argc, char* argv[]) {
             //Draw
             backpack.Draw(objectShader);
         }
+
+        //Unbind framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Render whatever's in the frame buffer to 
+        // the default colour buffer
+        glClearColor(1.f, 1.f, 1.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        simpleShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+        glDisable(GL_DEPTH_TEST);
+        glBindVertexArray(simpleVAO);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, static_cast<void*>(0));
+        glBindVertexArray(0);
 
         //Update screen
         SDL_GL_SwapWindow(gWindow);
