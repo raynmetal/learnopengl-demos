@@ -50,8 +50,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Shader edgehighlightShader{"shaders/simple_vertex.vs", "shaders/edgehighlight_fragment.fs"};
-    if(!edgehighlightShader.getBuildSuccess()) {
+    Shader simpleShader{"shaders/simple_vertex.vs", "shaders/simple_fragment.fs"};
+    if(!simpleShader.getBuildSuccess()) {
         std::cout << "Oops, simple shader failed to load" << std::endl;
         close(context);
         return 1;
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
         objectShader.setAttribPointerF("normal", 3, 8, 5);
     glBindVertexArray(0);
 
-    edgehighlightShader.use();
+    simpleShader.use();
     //Set up a VAO for a single upright square
     GLuint simpleVAO {};
     glGenVertexArrays(1, &simpleVAO);
@@ -199,11 +199,11 @@ int main(int argc, char* argv[]) {
             GL_STATIC_DRAW
         );
 
-        edgehighlightShader.enableAttribArray("position");
-        edgehighlightShader.setAttribPointerF("position", 2, 4, 0);
+        simpleShader.enableAttribArray("position");
+        simpleShader.setAttribPointerF("position", 2, 4, 0);
 
-        edgehighlightShader.enableAttribArray("textureCoord");
-        edgehighlightShader.setAttribPointerF("textureCoord", 2, 4, 2);
+        simpleShader.enableAttribArray("textureCoord");
+        simpleShader.setAttribPointerF("textureCoord", 2, 4, 2);
     glBindVertexArray(0);
 
     objectShader.use();
@@ -395,7 +395,7 @@ int main(int argc, char* argv[]) {
         // the default colour buffer
         glClearColor(1.f, 1.f, 1.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT);
-        edgehighlightShader.use();
+        simpleShader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
         glDisable(GL_DEPTH_TEST);
